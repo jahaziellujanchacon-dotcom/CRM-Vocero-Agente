@@ -1,26 +1,15 @@
 # ============================================================
-# Vocero CRM — Ruta B: app + Postgres + Caddy (HTTPS automático)
-# Uso:        cp .env.example .env  →  rellenar  →  docker compose up -d
-# Actualizar: git pull  →  docker compose up -d
+# Vocero CRM — adaptado para Coolify (sin Caddy)
+# Coolify usa su propio proxy (Traefik) para el dominio y el HTTPS,
+# así que aquí solo van la app y Postgres. El dominio se configura
+# en la UI de Coolify, no en este archivo.
 #
-# La app sale de la imagen publicada de la versión (una por tag vX.Y.Z). Con
-# `image` y `build` juntos y sin `pull_policy`, Compose intenta primero
-# descargar la imagen y solo la construye desde este repo si no la encuentra
-# ni en el registro ni en tu máquina (especificación de Compose, «Using build
-# and image»: docs.docker.com/reference/compose-file/build/):
-#
-#   docker compose up -d           la imagen publicada
-#   docker compose up -d --build   construida desde el código (la publicada
-#                                  es linux/amd64: en un VPS ARM, construye)
-#
-# Lo que construyes queda en tu máquina con este mismo nombre de imagen. En un
-# fork con cambios propios usa siempre --build (o cambia `image:` por un
-# nombre tuyo): sin él, Compose puede correr la imagen oficial en vez de tus
-# cambios. Otra versión publicada: VOCERO_CRM_VERSION=X.Y.Z en tu .env.
+# La imagen ghcr.io/kevinrivm/vocero-crm aún no tiene releases
+# publicados, así que se construye siempre desde el código del repo
+# (build: .) en vez de intentar descargarla.
 # ============================================================
 services:
   app:
-    image: ghcr.io/kevinrivm/vocero-crm:${VOCERO_CRM_VERSION:-1.4.0}
     build: .
     restart: unless-stopped
     environment:
@@ -37,19 +26,20 @@ services:
       OPENROUTER_JUDGE_MODEL: ${OPENROUTER_JUDGE_MODEL:-}
       ALLOW_SIGNUP: ${ALLOW_SIGNUP:-}
       AGENT_COALESCE_MS: ${AGENT_COALESCE_MS:-6000}
-      # Opcionales: vacías = apagadas (guía de cada una en .env.example).
+      # Opcionales: vacías = apagadas (guía de cada una en .env.example del repo).
       CHANNELS: ${CHANNELS:-}
       AGENDA: ${AGENDA:-}
       ATRIBUCION: ${ATRIBUCION:-}
       BOT_API_KEY: ${BOT_API_KEY:-}
       BRAIN_HEALTH_URL: ${BRAIN_HEALTH_URL:-}
     volumes:
-      # Adjuntos, logo e icono (la imagen ya trae MEDIA_DIR=/data/media): sin
-      # este volumen se pierden al recrear el contenedor.
+      # Adjuntos, logo e icono. Sin este volumen se pierden al recrear el contenedor.
       - vocero_app_data:/data
     depends_on:
       postgres:
         condition: service_healthy
+    expose:
+      - "3000"
     # el HEALTHCHECK vive en el Dockerfile (/api/health)
 
   postgres:
@@ -67,28 +57,6 @@ services:
       timeout: 5s
       retries: 10
 
-  caddy:
-    image: caddy:2-alpine
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    environment:
-      DOMAIN: ${DOMAIN}
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - vocero_caddy_data:/data
-      - vocero_caddy_config:/config
-    depends_on:
-      - app
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:2019/config/"]
-      interval: 15s
-      timeout: 5s
-      retries: 5
-
 volumes:
   vocero_pg:
   vocero_app_data:
-  vocero_caddy_data:
-  vocero_caddy_config:
