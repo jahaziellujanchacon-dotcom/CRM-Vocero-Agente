@@ -16,7 +16,7 @@ import {
 import { MessageSquareText, Settings2, Trophy, XCircle } from "lucide-react";
 import type { LossReason, PriorityValue, StageDto } from "@/lib/types";
 import { formatMoneyCents, sumable } from "@/lib/money";
-import { cn } from "@/lib/utils";
+import { cn, initials } from "@/lib/utils";
 import { ContactAvatar } from "@/components/avatar";
 import { Button } from "@/components/ui/button";
 import { formatTime } from "@/components/inbox/helpers";
@@ -36,12 +36,20 @@ export type BoardLead = {
   amountCents: number | null;
   currency: string | null;
   priority: PriorityValue | null;
+  /** 022 — the sales rep who owns the lead, or null when unassigned. */
+  assignee: TeamMember | null;
 };
+
+/** 022 — someone a lead can be assigned to. */
+export type TeamMember = { id: string; name: string };
 
 export function PipelineClient() {
   const [stages, setStages] = useState<StageDto[]>([]);
   const [currency, setCurrency] = useState("MXN");
   const [leads, setLeads] = useState<BoardLead[]>([]);
+  // 022 — only supervisors can reassign; `team` is who they can pick.
+  const [canAssign, setCanAssign] = useState(false);
+  const [team, setTeam] = useState<TeamMember[]>([]);
   const [activeLead, setActiveLead] = useState<BoardLead | null>(null);
   const [managing, setManaging] = useState(false);
   /** Arrastre hacia una etapa perdida, esperando el motivo. */
@@ -71,8 +79,12 @@ export function PipelineClient() {
       stages: StageDto[];
       leads: BoardLead[];
       currency?: string;
+      canAssign?: boolean;
+      team?: TeamMember[];
     };
     if (data.currency) setCurrency(data.currency);
+    setCanAssign(data.canAssign ?? false);
+    setTeam(data.team ?? []);
     setStages(data.stages);
     setLeads(data.leads);
   }, []);
@@ -131,6 +143,19 @@ export function PipelineClient() {
       method: "PATCH",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ priority }),
+    }).catch(() => null);
+    void refetch();
+  }
+
+  async function guardarVendedor(leadId: string, userId: string | null) {
+    const assignee = userId ? (team.find((m) => m.id === userId) ?? null) : null;
+    setLeads((prev) =>
+      prev.map((l) => (l.id === leadId ? { ...l, assignee } : l))
+    );
+    await fetch(`/api/pipeline/leads/${leadId}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ assignedUserId: userId }),
     }).catch(() => null);
     void refetch();
   }
@@ -228,6 +253,9 @@ export function PipelineClient() {
           onMoveStage={(stageId) => moverDesdeCajon(abierto.id, stageId)}
           onAmount={(cents) => void guardarMonto(abierto.id, cents)}
           onPriority={(p) => void guardarPrioridad(abierto.id, p)}
+          canAssign={canAssign}
+          team={team}
+          onAssign={(userId) => void guardarVendedor(abierto.id, userId)}
         />
       )}
 
@@ -442,6 +470,7 @@ function LeadCard({
               : "Sin actividad"}
           </p>
         </div>
+        <AssigneeChip assignee={lead.assignee} />
         {lead.conversationId && (
           <Link
             href={`/inbox?contact=${lead.contact.id}`}
@@ -483,5 +512,29 @@ function LeadCard({
         </p>
       )}
     </div>
+  );
+}
+
+/** 022 — who owns the card: the rep's initials, or a muted "unassigned" mark. */
+function AssigneeChip({ assignee }: { assignee: TeamMember | null }) {
+  if (!assignee) {
+    return (
+      <span
+        title="Sin asignar"
+        aria-label="Sin asignar"
+        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-dashed border-border-strong text-[10px] text-text-3"
+      >
+        ?
+      </span>
+    );
+  }
+  return (
+    <span
+      title={`Asignado a ${assignee.name}`}
+      aria-label={`Asignado a ${assignee.name}`}
+      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-soft text-[10px] font-bold text-brand-text"
+    >
+      {initials(assignee.name)}
+    </span>
   );
 }

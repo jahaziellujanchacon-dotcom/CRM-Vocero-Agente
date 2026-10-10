@@ -5,6 +5,16 @@ sigue el SemVer del [README](README.md#versiones): una menor trae funciones
 nuevas y actualizar es redesplegar. Desde 1.4.0, cada tag `vX.Y.Z` publica la
 imagen `ghcr.io/kevinrivm/vocero-crm:X.Y.Z`.
 
+## Sin publicar — IntoSales
+
+- **Reparto de leads por vendedor** (spec 022): cada lead tiene un vendedor.
+  Los leads nuevos se reparten por turno entre las cuentas de equipo; cada
+  vendedor solo ve sus leads y sus conversaciones en la Bandeja, el Pipeline y
+  Contactos, y el propietario ve todo y reasigna desde el cajón del trato. El
+  reparto se enciende, se apaga y se ajusta por vendedor en Ajustes → Equipo.
+- **Migración `0017_lead_assignment`**: añade el vendedor al lead y dos tablas
+  del reparto. Aditiva; los leads que ya existían quedan sin asignar.
+
 ## Sin publicar — camino a 2.0.0
 
 Lo que ya está en `main` de la sección 2.0.0 del

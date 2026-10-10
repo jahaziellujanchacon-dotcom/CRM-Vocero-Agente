@@ -18,7 +18,7 @@ import { FichaPanel } from "@/components/ficha-panel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PriorityPicker } from "./priority-picker";
-import type { BoardLead } from "./pipeline-client";
+import type { BoardLead, TeamMember } from "./pipeline-client";
 
 /**
  * El trato, abierto, sin salir del tablero.
@@ -36,6 +36,9 @@ export function LeadDrawer({
   onMoveStage,
   onAmount,
   onPriority,
+  canAssign,
+  team,
+  onAssign,
 }: {
   lead: BoardLead;
   stages: StageDto[];
@@ -46,6 +49,10 @@ export function LeadDrawer({
   onMoveStage: (stageId: string) => void;
   onAmount: (cents: number | null) => void;
   onPriority: (value: PriorityValue | null) => void;
+  /** 022 — supervisors pick the owner; a sales rep only sees it. */
+  canAssign: boolean;
+  team: TeamMember[];
+  onAssign: (userId: string | null) => void;
 }) {
   const [ficha, setFicha] = useState<FichaDto>({});
   // 018: de qué anuncio llegó; null si escribió por su cuenta.
@@ -233,6 +240,28 @@ export function LeadDrawer({
                   ? "Sin monto — captúralo"
                   : formatMoneyCents(lead.amountCents, moneda)}
               </button>
+            )}
+          </section>
+
+          {/* 022 — Quién lo atiende */}
+          <section className="border-b p-4">
+            <p className="mb-2 kicker">Vendedor</p>
+            {canAssign ? (
+              <select
+                value={lead.assignee?.id ?? ""}
+                onChange={(e) => onAssign(e.target.value || null)}
+                aria-label="Vendedor asignado"
+                className="h-8 w-full rounded-md border border-border-strong bg-background px-2 text-sm"
+              >
+                <option value="">Sin asignar</option>
+                {team.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <p className="text-sm">{lead.assignee?.name ?? "Sin asignar"}</p>
             )}
           </section>
 

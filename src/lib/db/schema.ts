@@ -242,12 +242,61 @@ export const lead = pgTable(
     priority: text("priority", { enum: ["alta", "media", "baja"] }),
     priorityUpdatedAt: timestamp("priority_updated_at"),
     lastActivityAt: timestamp("last_activity_at"),
+    /**
+     * 022 — The sales rep who owns this lead. NULL = unassigned (only
+     * supervisors see it). SET NULL on user deletion: the lead goes back to
+     * "unassigned" instead of pointing at someone who no longer exists.
+     */
+    assignedUserId: text("assigned_user_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    assignedAt: timestamp("assigned_at"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (t) => [
     uniqueIndex("lead_contact_uq").on(t.contactId),
     index("lead_org_stage_idx").on(t.organizationId, t.stageId, t.position),
+    // 022 — every "only my leads" query filters by these two columns.
+    index("lead_org_assignee_idx").on(t.organizationId, t.assignedUserId),
+  ]
+);
+
+/**
+ * 022 — Lead routing settings and round-robin cursor, one row per
+ * organization. A missing row means "enabled, nobody served yet".
+ *
+ * `lastAssignedUserId` has no foreign key on purpose: if that user leaves,
+ * the rotation simply continues with the next one in line.
+ */
+export const leadRouting = pgTable("lead_routing", {
+  organizationId: text("organization_id")
+    .primaryKey()
+    .references(() => organization.id, { onDelete: "cascade" }),
+  enabled: boolean("enabled").notNull().default(true),
+  lastAssignedUserId: text("last_assigned_user_id"),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+/**
+ * 022 — Per-rep exception to the rotation. Only the exception is stored: a
+ * rep without a row DOES receive new leads.
+ */
+export const leadRoutingMember = pgTable(
+  "lead_routing_member",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    receivesLeads: boolean("receives_leads").notNull().default(true),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("lead_routing_member_org_user_uq").on(t.organizationId, t.userId),
   ]
 );
 

@@ -3,6 +3,7 @@ import { getDb, schema } from "@/lib/db";
 import { scoped } from "@/lib/db/tenant";
 import { isWindowOpen, windowRemainingMs } from "@/server/inbox/window";
 import type { ConversationDto } from "@/lib/types";
+import { visibleContactCondition, type LeadScope } from "@/server/leads/scope";
 
 /**
  * 018 — El anuncio de origen viaja con la conversación. La llave única
@@ -40,7 +41,9 @@ function aAnuncioDeLista(
 
 export async function listConversations(
   organizationId: string,
-  since?: Date
+  since?: Date,
+  /** 022 — a sales rep only lists conversations of their own leads. */
+  scope: LeadScope = { kind: "all" }
 ): Promise<ConversationDto[]> {
   const db = getDb();
   const previewSql = sql<string | null>`(
@@ -76,7 +79,8 @@ export async function listConversations(
         schema.conversation.organizationId,
         organizationId,
         eq(schema.conversation.isTest, false),
-        since ? gt(schema.conversation.updatedAt, since) : undefined
+        since ? gt(schema.conversation.updatedAt, since) : undefined,
+        visibleContactCondition(scope, schema.conversation.contactId)
       )
     )
     .orderBy(desc(sql`coalesce(${schema.conversation.lastMessageAt}, ${schema.conversation.createdAt})`));

@@ -2,6 +2,8 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { apiError, parseBody, withAuth } from "@/lib/api";
 import { getDb, schema } from "@/lib/db";
+import { canSeeContact, getLeadScope } from "@/server/leads/scope";
+import { getAssignee } from "@/server/leads/assignee";
 import { scoped } from "@/lib/db/tenant";
 import {
   getContactById,
@@ -21,6 +23,9 @@ type Params = { params: Promise<{ id: string }> };
 
 export const GET = withAuth(async (session, _req: Request, ctx: Params) => {
   const { id } = await ctx.params;
+  if (!(await canSeeContact(getLeadScope(session), session.organizationId, id))) {
+    return apiError(404, "not_found", "Contacto no encontrado");
+  }
   const contact = await getContactById(session.organizationId, id);
   if (!contact) return apiError(404, "not_found", "Contacto no encontrado");
   const [stageRow, anuncio] = await Promise.all([
@@ -43,7 +48,13 @@ export const GET = withAuth(async (session, _req: Request, ctx: Params) => {
           kind: stageRow.stage.kind,
         }
       : null,
-    lead: stageRow ? { id: stageRow.lead.id } : null,
+    lead: stageRow
+      ? {
+          id: stageRow.lead.id,
+          // 022 — who owns this lead, or null when unassigned.
+          assignee: await getAssignee(stageRow.lead.assignedUserId),
+        }
+      : null,
   });
 });
 
@@ -62,6 +73,9 @@ const patchSchema = z.object({
 
 export const PATCH = withAuth(async (session, req: Request, ctx: Params) => {
   const { id } = await ctx.params;
+  if (!(await canSeeContact(getLeadScope(session), session.organizationId, id))) {
+    return apiError(404, "not_found", "Contacto no encontrado");
+  }
   const body = await parseBody(req, patchSchema);
   if (!body.ok) return body.response;
 

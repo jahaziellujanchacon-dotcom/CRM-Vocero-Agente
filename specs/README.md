@@ -18,6 +18,7 @@ producto** — y saberlo antes de leerla ahorra una confusión.
 | `019-resultados` | Ligero | spec (puerto de la pantalla Resultados de Vocero Cloud, sin gasto publicitario ni migración) |
 | `020-token-ia-ui` | Ligero, con el modelo de datos dentro | spec (puerto de `ai_credentials` de Vocero Cloud, #85: Ajustes → IA, migración aditiva `0015`, sin registro de llamadas) |
 | `021-despacho-estandar` | Ciclo completo | spec, plan, data-model, 1 contrato, tasks (#89: el CRM le despacha cada turno al cerebro; puerto del despachador de Vocero Cloud, migración aditiva `0016`) |
+| `022-reparto-de-leads` | Ciclo completo | spec, plan, data-model, 1 contrato, tasks (IntoSales: vendedor asignado a cada lead, reparto por turno y visibilidad por vendedor; migración aditiva `0017`) |
 
 Los tres carriles —ciclo completo, ligero y exento— están definidos en el
 [Principio VI de la constitución](../.specify/memory/constitution.md). El

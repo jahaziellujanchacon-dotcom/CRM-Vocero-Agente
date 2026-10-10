@@ -2,6 +2,7 @@ import { and, asc, eq, sql } from "drizzle-orm";
 import { getDb, schema } from "@/lib/db";
 import { newId } from "@/lib/db/ids";
 import { recordLeadCreated } from "@/server/leads/stage-history";
+import { assignLeadByRotation } from "@/server/leads/routing";
 import type { StageChangeSource } from "@/lib/types";
 
 /**
@@ -52,6 +53,11 @@ export async function createLeadForContact(input: {
   /** Quién dio de alta: el webhook es `sistema`, la captura manual `dueno`. */
   source?: StageChangeSource;
   actorUserId?: string | null;
+  /**
+   * 022 — Explicit owner of the new lead (a sales rep capturing their own
+   * prospect, D6). Absent: the lead goes to the next rep in the rotation.
+   */
+  assignedUserId?: string;
 }): Promise<{ id: string; stageId: string } | null> {
   const db = getDb();
 
@@ -113,6 +119,24 @@ export async function createLeadForContact(input: {
     actorUserId: input.actorUserId ?? null,
     source: input.source ?? "sistema",
   });
+
+  // 022 — Assignment happens only when THIS call created the lead: a webhook
+  // that lost the race above must not consume a turn. A failure here never
+  // undoes the lead (ingestion must not break); the lead just stays
+  // unassigned and supervisors still see it.
+  try {
+    if (input.assignedUserId) {
+      const now = new Date();
+      await db
+        .update(schema.lead)
+        .set({ assignedUserId: input.assignedUserId, assignedAt: now, updatedAt: now })
+        .where(eq(schema.lead.id, creado.id));
+    } else {
+      await assignLeadByRotation(input.organizationId, creado.id);
+    }
+  } catch (err) {
+    console.error("[leads] could not assign the new lead:", err);
+  }
 
   return creado;
 }

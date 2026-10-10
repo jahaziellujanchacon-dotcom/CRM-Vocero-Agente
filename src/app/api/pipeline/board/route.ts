@@ -3,12 +3,15 @@ import { withAuth } from "@/lib/api";
 import { getDb, schema } from "@/lib/db";
 import { scoped } from "@/lib/db/tenant";
 import { getBranding } from "@/server/branding";
+import { getAssignees } from "@/server/leads/assignee";
+import { getLeadScope, ownLeadCondition, seesEverything } from "@/server/leads/scope";
 
 export const dynamic = "force-dynamic";
 
 /** Datos completos del kanban: etapas ordenadas + tarjetas con su contacto. */
 export const GET = withAuth(async (session) => {
   const db = getDb();
+  const scope = getLeadScope(session);
 
   const stages = await db
     .select()
@@ -31,8 +34,29 @@ export const GET = withAuth(async (session) => {
         eq(schema.conversation.isTest, false)
       )
     )
-    .where(scoped(schema.lead.organizationId, session.organizationId))
+    .where(
+      scoped(
+        schema.lead.organizationId,
+        session.organizationId,
+        // 022 — a sales rep only sees their own cards.
+        ownLeadCondition(scope)
+      )
+    )
     .orderBy(asc(schema.lead.position));
+
+  const assignees = await getAssignees(leads.map((r) => r.lead.assignedUserId));
+
+  // 022 — who a supervisor can hand a lead to: the whole team. A rep cannot
+  // reassign, so they get an empty list.
+  const canAssign = seesEverything(scope);
+  const team = canAssign
+    ? await db
+        .select({ id: schema.user.id, name: schema.user.name })
+        .from(schema.member)
+        .innerJoin(schema.user, eq(schema.user.id, schema.member.userId))
+        .where(scoped(schema.member.organizationId, session.organizationId))
+        .orderBy(asc(schema.member.createdAt))
+    : [];
 
   // La moneda del negocio viaja con el tablero: el cliente suma sus columnas y
   // necesita saber cuál es la única sumable, sin adivinarla ni pedirla aparte.
@@ -40,6 +64,8 @@ export const GET = withAuth(async (session) => {
 
   return Response.json({
     currency,
+    canAssign,
+    team,
     stages: stages.map((s) => ({
       id: s.id,
       name: s.name,
@@ -60,6 +86,9 @@ export const GET = withAuth(async (session) => {
         phone: r.contact.phone,
       },
       conversationId: r.conversationId,
+      assignee: r.lead.assignedUserId
+        ? (assignees.get(r.lead.assignedUserId) ?? null)
+        : null,
     })),
   });
 });

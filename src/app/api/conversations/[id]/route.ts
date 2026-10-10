@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { apiError, parseBody, withAuth } from "@/lib/api";
 import { publish } from "@/server/events/bus";
+import { canSeeConversation, getLeadScope } from "@/server/leads/scope";
 import { serializeConversation, getConversation, updateConversation } from "@/server/inbox/queries";
 
 export const dynamic = "force-dynamic";
@@ -15,6 +16,9 @@ type Params = { params: Promise<{ id: string }> };
 
 export const PATCH = withAuth(async (session, req: Request, ctx: Params) => {
   const { id } = await ctx.params;
+  if (!(await canSeeConversation(getLeadScope(session), session.organizationId, id))) {
+    return apiError(404, "not_found", "Conversación no encontrada");
+  }
   const body = await parseBody(req, patchSchema);
   if (!body.ok) return body.response;
 
