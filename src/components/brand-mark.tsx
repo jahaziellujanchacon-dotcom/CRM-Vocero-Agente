@@ -1,12 +1,5 @@
 import type { Branding } from "@/lib/branding";
-import {
-  BRAND_GREEN,
-  BRAND_GREEN_ON_TILE,
-  BRAND_MARK_BODY,
-  BRAND_MARK_STROKE,
-  BRAND_MARK_TAIL,
-  isBrandName,
-} from "@/lib/brand";
+import { BRAND_GREEN, BRAND_LOGO_SRC, isBrandName } from "@/lib/brand";
 import { faviconHref, faviconInitial } from "@/lib/favicon";
 import { cn } from "@/lib/utils";
 
@@ -17,36 +10,19 @@ import { cn } from "@/lib/utils";
 export type BrandingMark = Pick<Branding, "name" | "accent" | "favicon">;
 
 /**
- * El isotipo de la marca: las dos flechas de into. La primera hereda
- * `currentColor`; píntala con `text-brand` (o blanco sobre el mosaico) y la
- * segunda sigue siendo verde.
+ * El isotipo oficial de into. Es un PNG con fondo transparente: se ve igual
+ * sobre el papel del tema claro y sobre la barra azul marino.
  */
-export function BrandMark({
-  className,
-  green = BRAND_GREEN,
-}: {
-  className?: string;
-  green?: string;
-}) {
+export function BrandMark({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className={className}>
-      <path
-        d={BRAND_MARK_BODY}
-        stroke="currentColor"
-        strokeWidth={BRAND_MARK_STROKE}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-      />
-      <path
-        d={BRAND_MARK_TAIL}
-        stroke={green}
-        strokeWidth={BRAND_MARK_STROKE}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-      />
-    </svg>
+    // Sin next/image a propósito: es un archivo estático pequeño.
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={BRAND_LOGO_SRC}
+      alt=""
+      aria-hidden="true"
+      className={cn("object-contain", className)}
+    />
   );
 }
 
@@ -54,7 +30,8 @@ export function BrandMark({
  * Mosaico cuadrado con degradado del acento: es el favicon en grande. Con un
  * logo subido lleva el logo (el MISMO archivo y la MISMA URL versionada que
  * la pestaña, así lo que se sube en Ajustes → Marca se ve en los dos sitios);
- * sin él, las flechas de into o la inicial del nombre white-label.
+ * sin él, la inicial del nombre white-label. (La marca IntoSales sin logo
+ * subido no usa el mosaico: ver `BrandLogo`.)
  */
 export function BrandTile({
   branding,
@@ -80,8 +57,6 @@ export function BrandTile({
           alt=""
           className="h-full w-full object-contain"
         />
-      ) : isBrandName(branding.name) ? (
-        <BrandMark className="h-[64%] w-[64%]" green={BRAND_GREEN_ON_TILE} />
       ) : (
         <span className="font-bold leading-none">{faviconInitial(branding.name)}</span>
       )}
@@ -122,7 +97,7 @@ export function BrandLogo({
   if (isBrandName(branding.name) && !branding.favicon) {
     return (
       <span className={cn("flex items-center gap-2 text-foreground", className)}>
-        <BrandMark className={cn("shrink-0 text-brand", MARK_SIZE[size])} />
+        <BrandMark className={cn("shrink-0", MARK_SIZE[size])} />
         <span
           className={cn(
             "font-[700] leading-none tracking-[-0.02em]",
