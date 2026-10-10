@@ -135,7 +135,7 @@ export function AppNav({
         open ? "visible translate-x-0 shadow-pop" : "invisible -translate-x-full"
       )}
     >
-      {/* Marca: el logo de Vocero o, white-label, la inicial y el nombre */}
+      {/* Marca: el logo de IntoSales o, white-label, la inicial y el nombre */}
       <div className="mb-5 flex items-start gap-1.5 px-2 pt-0.5">
         {/* En móvil el cajón necesita su propio cierre: el velo no siempre es
             alcanzable con el pulgar. */}

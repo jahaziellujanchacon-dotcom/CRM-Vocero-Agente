@@ -63,18 +63,18 @@ describe("white-label: acento", () => {
     expect(lum).toBeLessThan(0xd0);
   });
 
-  it("hex inválido cae al default (el azul Vocero)", () => {
-    expect(resolveAccentSet("rojo")).toEqual(ACCENT_PRESETS["#0d5bff"]!.set);
+  it("hex inválido cae al default (el azul into)", () => {
+    expect(resolveAccentSet("rojo")).toEqual(ACCENT_PRESETS["#0081c8"]!.set);
   });
 
-  it("el azul Vocero es el default y trae los valores exactos de la landing", () => {
-    expect(DEFAULT_BRANDING.accent).toBe("#0d5bff");
+  it("el azul into es el default; el relleno va un paso más oscuro para pasar AA", () => {
+    expect(DEFAULT_BRANDING.accent).toBe("#0081c8");
     expect(resolveAccentSet(DEFAULT_BRANDING.accent)).toEqual({
-      accent: "#0d5bff",
-      hover: "#0a4de6",
-      soft: "#d3e2ff",
-      tint: "#ebf1ff",
-      text: "#0038d8",
+      accent: "#0074b4",
+      hover: "#00669e",
+      soft: "#cce3f1",
+      tint: "#e8f3fa",
+      text: "#005a8c",
       fg: "#ffffff",
     });
   });
@@ -95,8 +95,9 @@ describe("white-label: acento en tema oscuro", () => {
     }
   });
 
-  it("el azul Vocero conserva la tinta blanca en oscuro", () => {
-    expect(resolveAccentSet(DEFAULT_BRANDING.accent, "dark").fg).toBe("#ffffff");
+  it("el azul into en oscuro lleva una tinta que pasa AA", () => {
+    const s = resolveAccentSet(DEFAULT_BRANDING.accent, "dark");
+    expect(contrast(s.fg, s.accent)).toBeGreaterThanOrEqual(4.5);
   });
 
   it("los presets NO se aplican tal cual: están calculados para fondo blanco", () => {
@@ -109,7 +110,7 @@ describe("white-label: acento en tema oscuro", () => {
 
   it("hex inválido en oscuro también cae al acento por defecto", () => {
     expect(resolveAccentSet("rojo", "dark")).toEqual(
-      resolveAccentSet("#0d5bff", "dark")
+      resolveAccentSet("#0081c8", "dark")
     );
   });
 
@@ -146,16 +147,16 @@ describe("white-label: barra lateral bicolor (.nav-dark)", () => {
     expect(nav).not.toContain(resolveAccentSet("#3f5972", "light").accent);
   });
 
-  it("con el azul Vocero, la barra se ve como siempre", () => {
-    // La receta de la barra es la de antes: el ítem activo del tema claro no
-    // cambia aunque el tema oscuro de la página sí.
+  it("con el azul into, la barra lleva su receta fija", () => {
+    // El ítem activo del tema claro no cambia aunque el tema oscuro de la
+    // página sí.
     expect(resolveNavAccentSet(DEFAULT_BRANDING.accent)).toEqual({
-      accent: "#256bff",
-      hover: "#4883ff",
-      soft: "#122c63",
-      tint: "#0e1e41",
-      text: "#6295ff",
-      fg: "#ffffff",
+      accent: "#1a8ece",
+      hover: "#3ea0d5",
+      soft: "#0f3556",
+      tint: "#0d223b",
+      text: "#5aaddb",
+      fg: "#0f1419",
     });
   });
 
@@ -209,14 +210,14 @@ describe("tema oscuro: las superficies se distinguen", () => {
 });
 
 describe("white-label: normalización", () => {
-  it("nombre vacío o nulo → default 'Vocero'; se recorta a 30", () => {
-    expect(normalizeBranding(null).name).toBe("Vocero");
-    expect(normalizeBranding({ name: "   " }).name).toBe("Vocero");
+  it("nombre vacío o nulo → default 'IntoSales'; se recorta a 30", () => {
+    expect(normalizeBranding(null).name).toBe("IntoSales");
+    expect(normalizeBranding({ name: "   " }).name).toBe("IntoSales");
     expect(normalizeBranding({ name: "x".repeat(50) }).name).toHaveLength(30);
   });
 
   it("acento inválido → default", () => {
-    expect(normalizeBranding({ accent: "azul" }).accent).toBe("#0d5bff");
+    expect(normalizeBranding({ accent: "azul" }).accent).toBe("#0081c8");
     expect(normalizeBranding({ accent: "#3F6B66" }).accent).toBe("#3f6b66");
   });
 });
