@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-> IntoSales es el CRM con IA de **into** («Programamos tu éxito»). Está basado
+> IntoSales es el CRM con IA de **into**. Está basado
 > en [Vocero CRM](https://github.com/kevinrivm/vocero-crm) de Kevin Belier,
 > publicado con licencia MIT; el aviso de copyright original se conserva en
 > [LICENSE](LICENSE).
