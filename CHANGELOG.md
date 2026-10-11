@@ -7,6 +7,19 @@ imagen `ghcr.io/kevinrivm/vocero-crm:X.Y.Z`.
 
 ## Sin publicar — IntoSales
 
+- **Datos de ejemplo por rubro** (spec 023): `pnpm seed:academy`,
+  `pnpm seed:realestate` y `pnpm seed:fashion` cargan contactos con
+  conversación y lead, plantillas de WhatsApp en borrador y la configuración
+  del agente de una academia, una inmobiliaria o una tienda de moda en línea.
+  Se pueden repetir y nunca tocan contactos reales; `--reset` quita los
+  ejemplos de ese rubro. En Configuración → Plantillas, un borrador ahora
+  tiene el botón «Enviar a Meta».
+- **Adiós a la ferretería de demostración**: `pnpm seed:demo` y el botón de
+  la Bandeja cargan la academia de ejemplo, y los comandos por rubro quitan
+  lo que la demo vieja dejó en la base (contactos, conocimiento, perfil del
+  agente y su corrida del Laboratorio). Las personas del Laboratorio ya no
+  preguntan por herramientas.
+
 - **Reparto de leads por vendedor** (spec 022): cada lead tiene un vendedor.
   Los leads nuevos se reparten por turno entre las cuentas de equipo; cada
   vendedor solo ve sus leads y sus conversaciones en la Bandeja, el Pipeline y

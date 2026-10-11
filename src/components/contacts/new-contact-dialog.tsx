@@ -119,7 +119,7 @@ export function NewContactDialog({
               id="nc-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Ferretería La Central"
+              placeholder="Rosa Quispe"
             />
           </div>
 

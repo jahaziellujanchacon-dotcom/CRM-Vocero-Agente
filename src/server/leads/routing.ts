@@ -83,9 +83,10 @@ async function ensureRoutingRow(db: Db | Tx, organizationId: string) {
  */
 export async function assignLeadByRotation(
   organizationId: string,
-  leadId: string
+  leadId: string,
+  /** The app's connection by default; CLI scripts (seeds) pass their own. */
+  db: Db = getDb()
 ): Promise<string | null> {
-  const db = getDb();
   return db.transaction(async (tx) => {
     await ensureRoutingRow(tx, organizationId);
     const [routing] = await tx

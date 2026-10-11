@@ -7,7 +7,23 @@ const { version } = JSON.parse(
   readFileSync(new URL("./package.json", import.meta.url), "utf8")
 ) as { version: string };
 
+/**
+ * Public host of this instance when it is not localhost (for example a
+ * Cloudflare tunnel in local development, see docs/tunel-cloudflare.md).
+ * `next dev` only serves its dev assets to allowed origins; without this the
+ * app opened through the tunnel loads its HTML but not its scripts.
+ */
+function devPublicHost(): string[] {
+  try {
+    const host = new URL(process.env.APP_BASE_URL ?? "").hostname;
+    return host && host !== "localhost" ? [host] : [];
+  } catch {
+    return [];
+  }
+}
+
 const nextConfig: NextConfig = {
+  allowedDevOrigins: devPublicHost(),
   // standalone es para la imagen Docker (Linux). En Windows el trazado crea
   // symlinks que requieren permisos elevados, así que ahí se omite.
   output: process.platform === "win32" ? undefined : "standalone",

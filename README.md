@@ -374,9 +374,10 @@ solas al arrancar.
    y el agente encendido entras directo a la Bandeja. La guía no encierra a
    nadie: desde el menú vas a cualquier pantalla en cualquier momento.
 4. Opcional: en la Bandeja, pulsa **"Cargar datos de demostración"** para
-   explorar con la **Ferretería El Martillo** (contactos, conversaciones,
-   pipeline, un knowledge base con huecos a propósito y una corrida de
-   Laboratorio de ejemplo — corre el Laboratorio y mira cómo los encuentra).
+   explorar con la **Academia Horizonte** (contactos, conversaciones,
+   pipeline, plantillas en borrador y el conocimiento del agente). Para otro
+   rubro: `pnpm seed:realestate` (inmobiliaria) o `pnpm seed:fashion`
+   (moda en línea).
    La demo deja configurado el agente (paso 1 listo); la llave de IA y el
    número siguen siendo tuyos.
 
