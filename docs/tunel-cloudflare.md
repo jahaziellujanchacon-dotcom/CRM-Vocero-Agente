@@ -86,18 +86,35 @@ sesión ahí, no en `localhost:3000`: la sesión queda atada a `APP_BASE_URL`.
 En **Configuración → WhatsApp**: pega el WABA ID, el Phone Number ID y el
 token → **Probar conexión** → **Guardar**.
 
-Al guardar, IntoSales registra el webhook en Meta por ti y te lo confirma en
-pantalla. Si Meta lo rechaza:
+Al guardar, IntoSales intenta registrar el webhook en Meta por ti y te dice
+cómo le fue.
 
-1. Pulsa **«Registrar en Meta»** en la tarjeta del webhook para reintentar.
-2. Si sigue fallando, hazlo a mano en Meta: *WhatsApp → Configuration →
-   Webhook → Edit*. Pega la **URL del webhook** y el **verify token** que te
-   muestra esa misma tarjeta (botones de copiar) y pulsa *Verify and save*.
-3. En *Webhook fields*, suscribe **`messages`** y, si usarás plantillas,
-   **`message_template_status_update`**.
+### Si tu app de Meta es nueva (lo normal la primera vez)
+
+Meta no deja registrar el webhook del número mientras tu app no tenga un
+webhook propio, y ese solo se configura a mano en el panel de Meta. Lo verás
+como el aviso «Tu app de Meta todavía no tiene un webhook propio…». Es una
+sola vez por app:
+
+1. En IntoSales, en la tarjeta **Webhook de WhatsApp**, copia la **URL del
+   webhook** y el **verify token**.
+2. En [developers.facebook.com](https://developers.facebook.com) → tu app →
+   *WhatsApp → Configuración* (*Configuration*) → *Webhook* → *Editar*.
+   Pega la URL en *URL de devolución de llamada* (*Callback URL*) y el verify
+   token en *Token de verificación* → *Verificar y guardar*. Para que Meta
+   pueda verificarla, `pnpm dev` y el túnel tienen que estar corriendo.
+3. En la misma página, en *Campos del webhook*, suscribe **`messages`** y, si
+   usarás plantillas, **`message_template_status_update`**.
+4. Vuelve a IntoSales y pulsa **«Registrar en Meta»**: ahora sí queda
+   registrado en el número.
 
 La URL tiene esta forma:
 `https://palabras-al-azar.trycloudflare.com/api/webhooks/wa/<tu verify token>`.
+
+### Si falla por otra razón
+
+El aviso dice el motivo. Lo más común es que el token no tenga el permiso
+`whatsapp_business_management`: genera uno que lo tenga y vuelve a guardar.
 
 ## 6. Prueba que llegan los mensajes
 
@@ -131,6 +148,8 @@ El túnel rápido estrena dirección cada vez que lo reinicias. Entonces:
 2. Entra por la nueva dirección.
 3. **Configuración → WhatsApp → «Registrar en Meta»**, para que Meta mande los
    mensajes a la dirección nueva.
+4. Si Meta vuelve a mostrar el aviso de la app sin webhook, actualiza también
+   la URL en el panel de tu app (sección 5) con la dirección nueva.
 
 ## Túnel con nombre (dirección fija)
 
@@ -161,9 +180,10 @@ quieras probar solo corres `pnpm dev` y el último comando.
 
 | Síntoma | Causa probable |
 |---|---|
+| «Tu app de Meta todavía no tiene un webhook propio» | Falta el paso de una sola vez en el panel de Meta (sección 5, «Si tu app de Meta es nueva»). |
 | Meta dice que no pudo verificar el webhook | La URL o el verify token no coinciden con los de la tarjeta del webhook, o `pnpm dev` / el túnel no están corriendo. |
 | No puedes iniciar sesión por el túnel | `APP_BASE_URL` no es exactamente la dirección del túnel, o no reiniciaste `pnpm dev`. |
 | La página carga sin estilos o sin reaccionar | Reinicia `pnpm dev` después de cambiar `APP_BASE_URL`: la app solo acepta como origen de desarrollo la dirección que tiene ahí. |
 | Los mensajes no llegan a la Bandeja | El túnel cambió de dirección (ver arriba), el campo `messages` no está suscrito, o tu número no está como destinatario del número de prueba. |
-| Llegan pero la app responde 401 en la terminal | `META_APP_SECRET` no es el de esta app de Meta. |
+| No llega nada y la terminal de `pnpm dev` dice «firma que no coincide con META_APP_SECRET» | `META_APP_SECRET` no es el App Secret de esta app de Meta (o quedó cortado: son 32 caracteres). Cópialo de nuevo desde *Configuración de la app → Básica → Clave secreta de la app* y reinicia `pnpm dev`. |
 | El agente no contesta | Mira la tarjeta «Quién responde» en Agente. |

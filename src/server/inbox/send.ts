@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { getDb, schema } from "@/lib/db";
 import { newId } from "@/lib/db/ids";
 import { graphRequest, MetaApiError, normalizeRecipient } from "@/lib/meta/client";
+import { describeSendError } from "@/lib/meta/send-errors";
 import { destinatarioMeta, type Destinatario } from "@/lib/meta/destinatario";
 import { publish } from "@/server/events/bus";
 import {
@@ -544,10 +545,26 @@ export async function callGraphSend(
       if (err.status === 0 || err.status >= 500) {
         throw new SendError("meta_unavailable", "Meta no está disponible ahora");
       }
-      throw new SendError("meta_error", err.message);
+      throw new SendError("meta_error", describeWhatsAppSendError(err, payload));
     }
     throw err;
   }
+}
+
+/**
+ * Meta's error in words the operator can act on, plus the case that most
+ * often confuses #131030: WhatsApp shared only an anonymous id (BSUID) for
+ * this customer, not their phone, so the test-number allow list (which holds
+ * phones) cannot match it even when the operator added their number.
+ */
+function describeWhatsAppSendError(err: MetaApiError, payload: unknown): string {
+  const base = describeSendError(err.code, err.message);
+  const toBsuid =
+    typeof payload === "object" && payload !== null && "recipient" in payload;
+  if (err.code === 131030 && toBsuid) {
+    return `${base} Además, WhatsApp no compartió el teléfono de este cliente, solo un identificador anónimo, así que Meta no puede compararlo con tu lista de prueba. Si este cliente eres tú, revisa tu número en esa lista y vuelve a escribir al número de prueba.`;
+  }
+  return base;
 }
 
 

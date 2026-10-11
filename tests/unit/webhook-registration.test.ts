@@ -129,6 +129,29 @@ describe("registro automático del webhook en Meta", () => {
     });
   });
 
+  it("app nueva sin webhook propio: explica el paso manual en vez del error crudo de Meta", async () => {
+    sinOverride();
+    respond({ success: true });
+    metaError(
+      400,
+      100,
+      "(#100) Before override the current callback uri, your app must be subscribed to receive messages for WhatsApp Business Account"
+    );
+    const res = await registerWebhookForNumber(opts);
+    expect(res).toMatchObject({ ok: false, code: "app_webhook_missing" });
+    expect(!res.ok && res.message).toContain("una vez a mano");
+    expect(!res.ok && res.message).not.toContain("#100");
+  });
+
+  it("otro error 100 de Meta sigue llegando tal cual", async () => {
+    sinOverride();
+    respond({ success: true });
+    metaError(400, 100, "(#100) Invalid parameter");
+    const res = await registerWebhookForNumber(opts);
+    expect(res).toMatchObject({ ok: false, code: "meta_error" });
+    expect(!res.ok && res.message).toContain("Invalid parameter");
+  });
+
   it("sin permiso de gestión: lo dice y no sigue con el override", async () => {
     sinOverride();
     metaError(403, 200, "(#200) Permissions error");

@@ -34,7 +34,7 @@ type WebhookInfo = {
 type WebhookRegistration =
   | { ok: true; appWithoutWebhook: boolean }
   | { ok: true; skipped: "waba_override"; host: string }
-  | { ok: false; message: string };
+  | { ok: false; message: string; code?: string };
 
 /**
  * El último registro, y desde dónde se pidió. Uno solo para las dos tarjetas:
@@ -441,6 +441,15 @@ function RegistrationNotice({
             → tu app → WhatsApp → Configuración, verifica una callback URL
             (sirve la de abajo) y suscribe el campo{" "}
             <code>messages</code>. Es una sola vez por app.
+          </>
+        ) : registration.code === "app_webhook_missing" ? (
+          <>
+            {afterSave ? "La conexión se guardó. " : ""}
+            {registration.message} En developers.facebook.com → tu app →
+            WhatsApp → Configuración → Webhook, pega la URL y el verify token
+            de abajo, pulsa «Verificar y guardar» y suscribe el campo{" "}
+            <code>messages</code>. Después vuelve aquí y pulsa «Registrar en
+            Meta».
           </>
         ) : (
           <>

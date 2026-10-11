@@ -58,8 +58,17 @@ export function resolveIdentity(
       : undefined) ??
     null;
 
-  if (msg.from) {
-    const phone = normalizeMx(msg.from);
+  // The phone can also come only in contacts[] (wa_id next to the user_id)
+  // while the message itself carries just the BSUID. Taking it from there
+  // keeps the contact reachable by phone, which is what Meta's test-number
+  // allow list compares against (#131030).
+  const phoneFromContacts =
+    !msg.from && waUserId
+      ? contacts?.find((c) => c.user_id === waUserId && c.wa_id)?.wa_id
+      : undefined;
+  const from = msg.from ?? phoneFromContacts;
+  if (from) {
+    const phone = normalizeMx(from);
     return { identity: phone, phone, waUserId, profileName };
   }
   if (waUserId) {
