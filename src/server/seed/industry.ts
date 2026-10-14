@@ -15,9 +15,9 @@ import {
 } from "@/server/seed/legacy-demo";
 
 /**
- * 023 — Loads (or removes) one industry's sample data: contacts with their
+ * 027 — Loads (or removes) one industry's sample data: contacts with their
  * conversations and leads, WhatsApp template drafts, and the AI agent's
- * profile and knowledge. See specs/023-datos-de-ejemplo-por-rubro/spec.md.
+ * profile and knowledge. See specs/027-datos-de-ejemplo-por-rubro/spec.md.
  *
  * Safe to repeat and never touches real data:
  * - sample contacts are recognised by their identity `sample:<industry>:<n>`

@@ -10,7 +10,7 @@
  *   --overwrite-agent   replace the agent profile even if it was already configured
  *
  * Bundled with esbuild (alias @ → ./src), like the demo seed.
- * Spec: specs/023-datos-de-ejemplo-por-rubro/spec.md
+ * Spec: specs/027-datos-de-ejemplo-por-rubro/spec.md
  */
 import { readFileSync } from "node:fs";
 import { drizzle } from "drizzle-orm/postgres-js";

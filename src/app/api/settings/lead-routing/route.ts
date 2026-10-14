@@ -10,7 +10,7 @@ import {
 
 export const dynamic = "force-dynamic";
 
-/** 022 — Lead routing settings (contract: specs/022-reparto-de-leads/contracts/api.md). */
+/** 026 — Lead routing settings (contract: specs/026-reparto-de-leads/contracts/api.md). */
 function toResponse(settings: RoutingSettings, canEdit: boolean) {
   return Response.json({ ...settings, canEdit });
 }

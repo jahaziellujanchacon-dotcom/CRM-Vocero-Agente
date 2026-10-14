@@ -3,7 +3,7 @@
 ## Datos
 
 - [x] T001 Columnas `assigned_user_id` y `assigned_at` en `lead`, tablas `lead_routing` y `lead_routing_member` en `schema.ts`, prefijo `lrm_`
-- [x] T002 `pnpm db:generate` → `0017_lead_assignment`
+- [x] T002 `pnpm db:generate` → `0019_lead_assignment`
 - [x] T003 Migrar una base vacía
 - [ ] T003b Migrar una base con datos en `0016` (la tuya local, al revisar)
 

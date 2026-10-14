@@ -40,7 +40,7 @@ Sin violaciones.
 ```text
 src/lib/db/schema.ts                         lead.assigned_user_id/assigned_at, lead_routing, lead_routing_member
 src/lib/db/ids.ts                            prefijo lrm_
-drizzle/0017_lead_assignment.sql             migración (+ snapshot y journal)
+drizzle/0019_lead_assignment.sql             migración (+ snapshot y journal)
 src/lib/auth/roles.ts                        isSupervisor()
 src/server/leads/round-robin.ts              pickNextAssignee() puro (testeable)
 src/server/leads/routing.ts                  turno con bloqueo, configuración del reparto

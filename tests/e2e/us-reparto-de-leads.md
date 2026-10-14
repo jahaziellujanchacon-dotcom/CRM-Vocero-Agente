@@ -1,9 +1,9 @@
 # E2E — Reparto de leads por vendedor (022)
 
 Arnés: `scripts/e2e-lead-routing.mjs`. Spec:
-[`specs/022-reparto-de-leads/spec.md`](../../specs/022-reparto-de-leads/spec.md).
+[`specs/026-reparto-de-leads/spec.md`](../../specs/026-reparto-de-leads/spec.md).
 Contrato:
-[`specs/022-reparto-de-leads/contracts/api.md`](../../specs/022-reparto-de-leads/contracts/api.md).
+[`specs/026-reparto-de-leads/contracts/api.md`](../../specs/026-reparto-de-leads/contracts/api.md).
 
 Precondición: app corriendo sobre una base **vacía** y migrada (el registro se
 cierra tras la primera organización), con `ALLOW_SIGNUP=true`. No hace falta

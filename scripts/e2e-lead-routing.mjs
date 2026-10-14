@@ -5,7 +5,7 @@
  * Usage (against an EMPTY database; signup closes after the first org):
  *   BASE_URL=http://localhost:3000 node scripts/e2e-lead-routing.mjs
  *
- * Covers specs/022-reparto-de-leads AC1-AC3, AC5-AC7, AC9, AC11-AC13 over
+ * Covers specs/026-reparto-de-leads AC1-AC3, AC5-AC7, AC9, AC11-AC13 over
  * HTTP, through the manual-capture path (the webhook uses the same
  * `createLeadForContact`). Exits non-zero on the first failure.
  */

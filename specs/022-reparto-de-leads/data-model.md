@@ -1,6 +1,6 @@
 # Modelo de datos — 022 Reparto de leads
 
-Migración aditiva `0017_lead_assignment`. No borra ni reescribe datos: los
+Migración aditiva `0019_lead_assignment`. No borra ni reescribe datos: los
 leads existentes quedan sin asignar (D9).
 
 ## `lead` (columnas nuevas)
