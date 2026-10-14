@@ -1243,6 +1243,7 @@ async function main() {
   await atribucionChecks();
   await anuncioDeOrigenChecks();
   await r11BotChecks();
+  await centralChecks();
 
   console.log(`\n===== ${checks - failures}/${checks} checks OK, ${failures} fallos =====`);
   process.exit(failures > 0 ? 1 : 0);
@@ -3538,4 +3539,103 @@ async function r11BotChecks() {
     );
   }
   await api("/api/agent/profile", { method: "PUT", body: JSON.stringify({ enabled: false }) });
+}
+
+/**
+ * 028 — Latido al servicio central (tests/e2e/us-latido-central.md). Con la
+ * bandera apagada, la superficie no existe. Encendida, apunta al mock del
+ * central de este mismo CRM (`INTO_CENTRAL_URL=${BASE}/api/dev/central-mock`):
+ * el final de la llave elige la respuesta del mock.
+ */
+async function centralChecks() {
+  const encendido = Boolean((process.env.INTO_CENTRAL_URL ?? "").trim());
+  console.log(`\n== 028: latido al servicio central (${encendido ? "encendido" : "apagado"}) ==`);
+  const salud = await api("/api/health");
+  ok("features.central dice lo que hace la app (AC1)", salud.json?.features?.central === encendido, JSON.stringify(salud.json?.features));
+
+  if (!encendido) {
+    const off = await api("/api/settings/central");
+    ok("sin la bandera, /api/settings/central no existe (AC1)", off.res.status === 404, `status=${off.res.status}`);
+    const pagina = await fetch(`${BASE}/settings/central`, { headers: { cookie } });
+    ok("sin la bandera, la página Plan no existe (AC1)", pagina.status === 404, `status=${pagina.status}`);
+    return;
+  }
+
+  const llave = (fin) => `into_live_${"E2e".repeat(9)}A${fin}`; // 10 + 28 + 4 = into_live_ + 32
+  const ultimo = async () => (await api("/api/dev/central-mock/v1/heartbeat")).json?.ultimo ?? null;
+
+  await api("/api/settings/central", { method: "DELETE" });
+  const vacia = await api("/api/settings/central");
+  ok("encendido y sin llave: pide la llave y no late (AC2)", vacia.res.ok && vacia.json?.licencia === null, JSON.stringify(vacia.json));
+
+  const antes = JSON.stringify(await ultimo());
+  const mala = await api("/api/settings/central", { method: "PUT", body: JSON.stringify({ llave: "into_live_corta" }) });
+  ok("una llave con otro formato se rechaza (AC4)", mala.res.status === 422, `status=${mala.res.status}`);
+  ok("…sin llamar al central (AC4)", JSON.stringify(await ultimo()) === antes);
+
+  const buena = llave("1234");
+  const put = await api("/api/settings/central", { method: "PUT", body: JSON.stringify({ llave: buena }) });
+  const lic = put.json?.licencia;
+  ok(
+    "guardar la llave late en ese momento y muestra el plan (AC3)",
+    put.res.ok && lic?.plan?.codigo === "CE-PYM" && lic?.plan?.nombre === "Pyme" && lic?.cuenta === "active" && lic?.ultimoResultado === "ok",
+    JSON.stringify(put.json)
+  );
+  ok("la llave se ve solo como sus últimos 4 (AC3, AC5)", lic?.llaveLast4 === "1234");
+  const texto = await (await fetch(`${BASE}/api/settings/central`, { headers: { cookie } })).text();
+  ok("la llave no sale en la respuesta de la API (AC5)", !texto.includes(buena) && !JSON.stringify(put.json).includes(buena));
+
+  const cuerpo = await ultimo();
+  const ids = (cuerpo?.checks ?? []).map((c) => c.id);
+  ok(
+    "el latido lleva solo lo del contrato (AC5)",
+    cuerpo &&
+      Object.keys(cuerpo).every((k) => ["app_version", "app_commit", "app_started_at", "checks"].includes(k)) &&
+      JSON.stringify(ids) === JSON.stringify(["database", "media_dir", "whatsapp", "ai", "dispatch"]) &&
+      cuerpo.checks.every((c) => Object.keys(c).join() === "id,status" && ["ok", "warn", "fail", "skip"].includes(c.status)),
+    JSON.stringify(cuerpo)
+  );
+  ok("…con WhatsApp conectado por el wa-mock", cuerpo?.checks?.find((c) => c.id === "whatsapp")?.status === "ok", JSON.stringify(cuerpo?.checks));
+  ok("…y sin la llave dentro", !JSON.stringify(cuerpo).includes(buena));
+
+  const rechazada = await api("/api/settings/central", { method: "PUT", body: JSON.stringify({ llave: llave("0000") }) });
+  ok(
+    "una llave que el central rechaza se guarda y lo dice (AC4)",
+    rechazada.res.ok && rechazada.json?.licencia?.ultimoResultado === "llave_invalida" && rechazada.json?.licencia?.plan === null,
+    JSON.stringify(rechazada.json)
+  );
+
+  const caido = await api("/api/settings/central", { method: "PUT", body: JSON.stringify({ llave: llave("5000") }) });
+  ok("con el central fallando, responde y dice «sin respuesta» (AC6)", caido.res.ok && caido.json?.licencia?.ultimoResultado === "sin_respuesta", JSON.stringify(caido.json));
+  const sigue = await api("/api/conversations");
+  ok("…y el CRM sigue atendiendo (AC6)", sigue.res.ok);
+
+  const suspendida = await api("/api/settings/central", { method: "PUT", body: JSON.stringify({ llave: llave("9999") }) });
+  ok("una cuenta suspendida se muestra, sin limitar nada (D4)", suspendida.json?.licencia?.cuenta === "suspended", JSON.stringify(suspendida.json));
+
+  // AC9: la pantalla a 360 px, con el plan a la vista y sin scroll horizontal.
+  await api("/api/settings/central", { method: "PUT", body: JSON.stringify({ llave: buena }) });
+  const { chromium } = await import("playwright");
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage({ viewport: { width: 360, height: 780 } });
+    const host = new URL(BASE).hostname;
+    await page.context().addCookies(
+      cookie.split("; ").filter(Boolean).map((c) => {
+        const i = c.indexOf("=");
+        return { name: c.slice(0, i), value: c.slice(i + 1), domain: host, path: "/" };
+      })
+    );
+    await page.goto(`${BASE}/settings/central`);
+    const plan = await page.getByTestId("central-plan").textContent({ timeout: 15000 }).catch(() => null);
+    ok("Plan muestra el plan en el teléfono (AC3, AC9)", plan === "Pyme", String(plan));
+    const desborda = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+    ok("Plan a 360 px sin scroll horizontal (AC9)", !desborda);
+    ok("la llave no está en el HTML de la página (AC5)", !(await page.content()).includes(buena));
+  } finally {
+    await browser.close();
+  }
+
+  const quitar = await api("/api/settings/central", { method: "DELETE" });
+  ok("quitar la llave borra lo guardado (AC7)", quitar.res.ok && quitar.json?.licencia === null, JSON.stringify(quitar.json));
 }

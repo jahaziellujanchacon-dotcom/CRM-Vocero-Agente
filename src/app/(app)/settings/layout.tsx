@@ -1,6 +1,7 @@
 import { SettingsNav } from "@/components/settings/settings-nav";
 import { agendaEnabled } from "@/server/agenda/flag";
 import { atribucionEnabled } from "@/server/attribution/flag";
+import { centralEnabled } from "@/server/central/flag";
 import { isChannelEnabled } from "@/server/channels/enabled";
 
 // La bandera se lee en cada petición: si esto se resolviera al construir, la
@@ -21,6 +22,7 @@ export default function SettingsLayout({
         <SettingsNav
           agenda={agendaEnabled()}
           atribucion={atribucionEnabled()}
+          central={centralEnabled()}
           instagram={isChannelEnabled("instagram")}
           messenger={isChannelEnabled("messenger")}
           tiktok={isChannelEnabled("tiktok")}

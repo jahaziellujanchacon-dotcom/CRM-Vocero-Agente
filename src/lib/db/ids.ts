@@ -37,6 +37,8 @@ const prefixes = {
   leadRoutingMember: "lrm",
   // 026 — el aviso de que una conversación se eliminó
   olvido: "olv",
+  // 028 — la llave de licencia del servicio central de into
+  centralLicense: "clic",
 } as const;
 
 export type IdKind = keyof typeof prefixes;

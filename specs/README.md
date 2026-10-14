@@ -25,6 +25,7 @@ producto** — y saberlo antes de leerla ahorra una confusión.
 | `025-despacho-recuerda` | Ciclo completo | spec, plan, tasks (el despacho anota qué mensajes debe; puerto de Vocero Cloud #111, #116 y #117, migración aditiva `0017`; enmienda el contrato del 021) |
 | `026-reparto-de-leads` | Ciclo completo | spec, plan, data-model, 1 contrato, tasks (IntoSales: vendedor asignado a cada lead, reparto por turno y visibilidad por vendedor; migración aditiva `0017`) |
 | `027-datos-de-ejemplo-por-rubro` | Ligero | spec (comandos `seed:academy`, `seed:realestate` y `seed:fashion`; sin migración) |
+| `028-latido-al-central` | Ciclo completo | spec, plan, data-model, tasks y la enmienda 1.5.0 de la constitución (latido al servicio central de into tras la bandera `INTO_CENTRAL_URL`, plan en Ajustes; migración aditiva `0020`) |
 
 Los tres carriles —ciclo completo, ligero y exento— están definidos en el
 [Principio VI de la constitución](../.specify/memory/constitution.md). El

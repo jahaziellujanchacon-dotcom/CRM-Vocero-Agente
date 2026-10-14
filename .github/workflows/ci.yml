@@ -41,13 +41,17 @@ jobs:
           - name: default
             channels: ""
             agenda: ""
+            central: ""
           - name: completo
             channels: "whatsapp,instagram,messenger,tiktok"
             agenda: "on"
+            # 028: el latido al servicio central de into (conector opcional).
+            central: "http://localhost:3000/api/dev/central-mock"
 
     env:
       CHANNELS: ${{ matrix.config.channels }}
       AGENDA: ${{ matrix.config.agenda }}
+      INTO_CENTRAL_URL: ${{ matrix.config.central }}
 
     steps:
       - uses: actions/checkout@v7

@@ -15,6 +15,7 @@ import path from "node:path";
 import { getSql } from "@/lib/db";
 import {
   checkAi,
+  checkCentral,
   checkDispatch,
   checkDatabase,
   checkMediaDir,
@@ -82,6 +83,7 @@ if (!env) {
   }
   section("IA (opcional)", [checkAi(env)]);
   section("Cerebro externo (opcional)", [checkDispatch(process.env)]);
+  section("Servicio central (opcional)", [checkCentral(process.env)]);
 }
 
 const s = summarize(all);

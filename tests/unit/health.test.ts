@@ -45,26 +45,29 @@ afterEach(async () => {
 });
 
 describe("features: las banderas de despliegue", () => {
-  it("sin banderas: solo WhatsApp, agenda y atribución apagadas", () => {
+  it("sin banderas: solo WhatsApp, agenda, atribución y central apagados", () => {
     expect(healthFeatures({})).toEqual({
       agenda: false,
       channels: ["whatsapp"],
       atribucion: false,
+      central: false,
     });
   });
 
-  it("con las tres encendidas, los canales van en el orden del catálogo", () => {
+  it("con todas encendidas, los canales van en el orden del catálogo", () => {
     // El de la variable no: dos instancias iguales tienen que responder igual.
     expect(
       healthFeatures({
         AGENDA: "on",
         CHANNELS: "messenger, Instagram",
         ATRIBUCION: "1",
+        INTO_CENTRAL_URL: "https://api.into.center",
       })
     ).toEqual({
       agenda: true,
       channels: ["whatsapp", "instagram", "messenger"],
       atribucion: true,
+      central: true,
     });
   });
 
@@ -72,8 +75,8 @@ describe("features: las banderas de despliegue", () => {
     // Mismos parsers que usan las rutas para responder 404: si aquí dijera
     // `true` y la agenda respondiera 404, el health mentiría.
     expect(
-      healthFeatures({ AGENDA: "onn", CHANNELS: "telegram", ATRIBUCION: "off" })
-    ).toEqual({ agenda: false, channels: ["whatsapp"], atribucion: false });
+      healthFeatures({ AGENDA: "onn", CHANNELS: "telegram", ATRIBUCION: "off", INTO_CENTRAL_URL: "api.into.center" })
+    ).toEqual({ agenda: false, channels: ["whatsapp"], atribucion: false, central: false });
   });
 });
 

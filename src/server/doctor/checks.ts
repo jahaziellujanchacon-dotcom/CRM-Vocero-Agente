@@ -5,6 +5,7 @@ import { getDb, PG_CONNECTION_OPTIONS, schema } from "@/lib/db";
 import { scoped } from "@/lib/db/tenant";
 import { envSchema, safeParseEnv, type Env } from "@/lib/env";
 import { leerConfigDespacho } from "@/server/brains/config";
+import { leerConfigCentral } from "@/server/central/flag";
 import { GENERATED_SECRETS, PLACEHOLDER_PREFIX } from "@/server/doctor/init-env";
 import { probeMediaDir } from "@/server/media-dir";
 import { testConnection, type ConnectionCheck } from "@/server/whatsapp/connect";
@@ -567,6 +568,34 @@ export function checkDispatch(
     label,
     detail: "no definida: contesta el agente incluido, o un cerebro que reciba el webhook por su cuenta",
   };
+}
+
+/* ---------- Servicio central (opcional) ---------- */
+
+/**
+ * 028 — El latido al servicio central de into. Apagado no es un fallo (es un
+ * conector opcional); mal escrito es un aviso: el latido queda inactivo y el
+ * CRM sigue igual. La llave vive cifrada en la base, así que aquí no se mira.
+ */
+export function checkCentral(source: Record<string, string | undefined>): CheckResult {
+  const config = leerConfigCentral(source);
+  const label = "INTO_CENTRAL_URL";
+  if (config.activo) {
+    return {
+      status: "ok",
+      label,
+      detail: `late a ${config.host} cada 15 min; la llave de licencia se pega en Ajustes → Plan`,
+    };
+  }
+  if (config.problema === "url") {
+    return {
+      status: "warn",
+      label,
+      detail: "no es una URL http:// o https:// válida (o lleva usuario:clave): el latido queda INACTIVO",
+      fix: "en .env: INTO_CENTRAL_URL=https://api.into.center",
+    };
+  }
+  return { status: "skip", label, detail: "no definida: el CRM no late a ningún servicio central" };
 }
 
 /* ---------- Salida ---------- */

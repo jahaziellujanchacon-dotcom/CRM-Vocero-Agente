@@ -1281,3 +1281,58 @@ export const dispatch = pgTable(
     index("dispatch_status_notbefore_idx").on(t.status, t.notBefore),
   ]
 );
+
+/* ============================================================
+ * 028 — Latido al servicio central de into
+ * ============================================================ */
+
+export const CENTRAL_RESULTS = [
+  "ok",
+  "llave_invalida",
+  "limite",
+  "rechazado",
+  "sin_respuesta",
+] as const;
+export type CentralResult = (typeof CENTRAL_RESULTS)[number];
+
+/**
+ * La llave de licencia de into de la organización y lo último que dijo el
+ * central (spec 028). Conector opcional: sin la bandera `INTO_CENTRAL_URL`
+ * esta tabla queda vacía y nadie la lee. La llave va cifrada como el token de
+ * WhatsApp; hacia fuera, solo sus últimos 4.
+ */
+export const centralLicense = pgTable(
+  "central_license",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    keyCipher: text("key_cipher").notNull(),
+    keyIv: text("key_iv").notNull(),
+    keyTag: text("key_tag").notNull(),
+    /** Lo ÚNICO de la llave que puede salir hacia el cliente. */
+    keyLast4: text("key_last4").notNull(),
+    lastAttemptAt: timestamp("last_attempt_at"),
+    lastResult: text("last_result", { enum: CENTRAL_RESULTS }),
+    lastOkAt: timestamp("last_ok_at"),
+    planCode: text("plan_code"),
+    planName: text("plan_name"),
+    customerStatus: text("customer_status", { enum: ["active", "suspended"] }),
+    /** Lo que pidió el central, sin acotar; el temporizador lo acota. */
+    nextHeartbeatSeconds: integer("next_heartbeat_seconds"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("central_license_org_uq").on(t.organizationId),
+    check(
+      "central_license_last_result_check",
+      sql`${t.lastResult} is null or ${t.lastResult} in ('ok', 'llave_invalida', 'limite', 'rechazado', 'sin_respuesta')`
+    ),
+    check(
+      "central_license_customer_status_check",
+      sql`${t.customerStatus} is null or ${t.customerStatus} in ('active', 'suspended')`
+    ),
+  ]
+);
