@@ -245,7 +245,7 @@ Meta y tu proveedor LLM opcional.
 ## Instalación (~15 minutos)
 
 Cada versión se publica como imagen de Docker:
-`ghcr.io/jcarlosverase/intosales:<versión>` (p. ej. `1.5.0`). Instalar desde
+`ghcr.io/jcarlosverase/into-sales:<versión>` (p. ej. `1.5.0`). Instalar desde
 la imagen es el camino recomendado: tu servidor la descarga en vez de
 construirla. Construir desde el código sigue funcionando, y es lo que
 necesitas en un VPS ARM o si tu fork cambia el código.
@@ -267,7 +267,7 @@ variante que construye desde el repositorio.
 ### Ruta B — docker compose
 
 ```bash
-git clone https://github.com/jcarlosverase/intosales.git vocero && cd vocero
+git clone https://github.com/jcarlosverase/into-sales.git vocero && cd vocero
 pnpm install && pnpm init-env --domain crm.tudominio.com   # crea .env con los secretos ya generados
 pnpm doctor                                                 # revisa el .env antes de arrancar
 docker compose up -d
@@ -320,7 +320,7 @@ webhook), el token de OpenRouter y, con dominio propio, `APP_BASE_URL`. El
 disco exige plan de pago (`starter` + `basic-256mb`; la base `free` caduca a
 los 30 días).
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/jcarlosverase/intosales)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/jcarlosverase/into-sales)
 
 **Fly.io** — [`fly.toml`](fly.toml) declara imagen, volumen `/data`, puerto
 3000, healthcheck, tamaño de máquina y las variables no secretas; Fly no deja
@@ -339,7 +339,7 @@ el dominio y las variables se crean con la CLI, con los comandos exactos
 escritos en el propio archivo (`railway add --database postgres`,
 `railway volume add --mount-path /data`, `railway domain --port 3000`,
 `railway variable set …`, `railway up`). Para la imagen publicada sin build:
-`railway add --image ghcr.io/jcarlosverase/intosales:1.5.0`, y entonces el
+`railway add --image ghcr.io/jcarlosverase/into-sales:1.5.0`, y entonces el
 healthcheck se fija en el panel. Railway declaró obsoleto este formato a
 favor de su Infrastructure as Code (`.railway/railway.ts`); lo sigue leyendo
 hasta el 2026-12-01.
@@ -699,7 +699,7 @@ junto con el default de `VOCERO_CRM_VERSION` en `docker-compose.yml` y la
 etiqueta de la imagen en `render.yaml`, `fly.toml` y `railway.toml` (dos
 pruebas exigen que coincidan) y su entrada en [`CHANGELOG.md`](CHANGELOG.md),
 que dice qué trae cada versión y qué hacer para actualizar. Al crear el tag
-`vX.Y.Z`, el CI publica la imagen `ghcr.io/jcarlosverase/intosales:X.Y.Z`.
+`vX.Y.Z`, el CI publica la imagen `ghcr.io/jcarlosverase/into-sales:X.Y.Z`.
 
 ## Roadmap
 

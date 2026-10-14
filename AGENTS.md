@@ -27,14 +27,14 @@ de skills, scripts ni plugins de ningún asistente.
 | Tiempo real | SSE en `GET /api/events` sobre un bus in-process (`src/server/events/bus.ts`); sin WebSockets ni colas: el trabajo en segundo plano corre dentro del proceso |
 | UI | Tailwind CSS con tokens en `src/app/globals.css`, tema claro/oscuro, white-label por organización |
 | Pruebas | Vitest (`tests/unit/`) + guiones E2E (`tests/e2e/*.md`) conducidos por `scripts/e2e-*.mjs` (fetch y, algunos, Playwright) contra la app con mocks |
-| Imagen | Docker multi-stage standalone, healthcheck `/api/health`, publicada en `ghcr.io/jcarlosverase/intosales:X.Y.Z` por `.github/workflows/imagen.yml` |
+| Imagen | Docker multi-stage standalone, healthcheck `/api/health`, publicada en `ghcr.io/jcarlosverase/into-sales:X.Y.Z` por `.github/workflows/imagen.yml` |
 
 ## Cómo correrlo
 
 ```bash
 pnpm install
-docker compose -f docker-compose.dev.yml up -d postgres   # Postgres local
-pnpm init-env                                              # crea .env con los secretos generados (DATABASE_URL apunta a `postgres`: cámbialo a localhost para pnpm dev)
+pnpm db:up                                                 # Postgres local en el puerto 5433 (pnpm db:down lo apaga)
+pnpm init-env                                              # crea .env con los secretos generados (DATABASE_URL apunta a `postgres`: cámbialo a localhost:5433 para pnpm dev)
 pnpm doctor                                                # valida el entorno y prueba la base
 pnpm db:migrate                                            # aplica drizzle/ en desarrollo
 pnpm dev                                                   # http://localhost:3000

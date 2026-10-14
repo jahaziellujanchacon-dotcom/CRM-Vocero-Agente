@@ -1,5 +1,5 @@
 {
-  "name": "intosales",
+  "name": "into-sales",
   "version": "1.5.0",
   "description": "IntoSales, el CRM de WhatsApp con agente de IA de into. Basado en Vocero CRM (MIT, Kevin Belier)",
   "license": "MIT",
@@ -11,6 +11,8 @@
   },
   "scripts": {
     "dev": "next dev",
+    "db:up": "docker compose -f docker-compose.dev.yml up -d --wait",
+    "db:down": "docker compose -f docker-compose.dev.yml stop",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",

@@ -161,15 +161,15 @@ cloudflared tunnel login
 ```
 
 ```bash
-cloudflared tunnel create intosales-dev
+cloudflared tunnel create into-sales-dev
 ```
 
 ```bash
-cloudflared tunnel route dns intosales-dev dev.into.center
+cloudflared tunnel route dns into-sales-dev dev.into.center
 ```
 
 ```bash
-cloudflared tunnel run --url http://localhost:3000 intosales-dev
+cloudflared tunnel run --url http://localhost:3000 into-sales-dev
 ```
 
 Luego, en `.env`, `APP_BASE_URL=https://dev.into.center`, reinicia
