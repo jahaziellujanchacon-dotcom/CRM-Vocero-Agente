@@ -1,4 +1,4 @@
-# E2E — Despacho estándar: el CRM le pasa cada turno al cerebro (021, #89)
+# E2E — Despacho estándar: el CRM le pasa cada turno al cerebro (021, #89; 025)
 
 Arnés: `scripts/e2e-despacho.mjs`. Contrato:
 [`specs/021-despacho-estandar/contracts/despacho.md`](../../specs/021-despacho-estandar/contracts/despacho.md).
@@ -18,6 +18,12 @@ por `/api/bot/messages`. El turno cruza HTTP de verdad en las dos direcciones.
 ```bash
 node --env-file=.env scripts/e2e-despacho.mjs
 ```
+
+**Dos modos (025).** El arnés mira cómo arrancó la app. Con
+`BRAIN_DISPATCH_URL` corre todo este guion. Sin ella contesta el agente
+incluido, y corre solo la sección «Sin cerebro externo» del final (no necesita
+`BOT_API_KEY`). El gate completo son las dos corridas, cada una con la app
+arrancada en su modo.
 
 ## Setup
 
@@ -48,6 +54,30 @@ node --env-file=.env scripts/e2e-despacho.mjs
 9. **AC5** Con el cerebro tardando 3 s en acusar recibo, llega un segundo
    mensaje mientras el primer despacho está en vuelo → llega un **segundo**
    despacho, con otro `dispatchId`, que trae los dos mensajes.
+    Cada mensaje de la ráfaga del paso 8 se espera en la bandeja antes de
+    mandar el siguiente: el webhook contesta 200 y después ingiere, y sin esa
+    espera el orden en que se guardan no es el orden en que se mandaron.
+
+### 025 — El despacho recuerda qué debe
+
+- **025·AC1** El cerebro acusa recibo del primer mensaje y «piensa». Entra un
+  segundo mensaje; con su ventana todavía abierta, el cerebro contesta el
+  primero por `/api/bot/messages`. Pasada la ventana llega un **segundo
+  despacho**, firmado y con otro `dispatchId`, con **exactamente** ese segundo
+  mensaje (por id): ni vacío ni repitiendo el ya contestado.
+- **025·AC2** Tras otra ventana no hay un tercer despacho, la conversación
+  sigue con la IA encendida y sin traspaso, y `dispatch.pending = 0`.
+- **025·AC4** Entra un mensaje y, con la ventana abierta, el operador contesta
+  desde la bandeja (`POST /api/conversations/{id}/messages`). El cerebro no
+  recibe **nada**: ni ese mensaje ni un despacho vacío.
+- **025·AC5** `dispatch.pending = 0`, `dispatch.lastFailure` no cambió y la
+  conversación no pasó a un humano. El siguiente mensaje de ese cliente sí se
+  despacha, y el evento trae solo ese.
+
+Los dos casos dependen de ganarle a la ventana de agrupado. Si el guion pierde
+esa carrera (máquina cargada), lo reintenta con otro contacto, hasta tres
+veces, y lo dice; no sigue con un caso que ya no prueba nada.
+
 10. **AC4** Una imagen con pie → el evento trae `mediaId`, `mimeType` y
     `caption`, y `GET /api/bot/media/{mediaId}` devuelve la imagen.
 11. **AC3** Un mensaje de Messenger (por Meta) y uno de Instagram (por Zernio)
@@ -60,8 +90,10 @@ node --env-file=.env scripts/e2e-despacho.mjs
 12. **AC11** Con la IA en pausa en una conversación
     (`PATCH /api/conversations/{id} {aiEnabled:false}`), un mensaje nuevo queda
     en la bandeja y **no** llega al cerebro.
-13. **AC11** Pausar la IA *durante* la ventana, con el despacho ya encolado: no
-    se entrega, la conversación **no** queda traspasada con motivo `error` y
+13. **AC11** Pausar la IA *durante* la ventana, con el despacho ya encolado: el
+    `PATCH` responde bien con la ventana todavía abierta (se comprueba aparte:
+    si no, el despacho sale —como debe— y el rojo sería del guion), no se
+    entrega, la conversación **no** queda traspasada con motivo `error` y
     `dispatch.pending = 0`.
 14. **AC13** Una corrida completa del Laboratorio termina y ningún cliente
     simulado llega al cerebro.
@@ -88,7 +120,39 @@ node --env-file=.env scripts/e2e-despacho.mjs
     (`embedded.answering`, `external.active`, `external.lastSeenAt`, `warning`)
     siguen. Sin sesión → 401.
 
+## Sin cerebro externo — el agente incluido (025)
+
+App arrancada **sin** `BRAIN_DISPATCH_URL`, con los mismos mocks. El mock de IA
+se configura por `GET /api/dev/ai-mock/v1/chat/completions?demoraMs=…&reset=1`
+y devuelve lo que se le preguntó (`peticiones`, sin el prompt de sistema).
+
+20. `GET /api/agent/brain-status` → `dispatch.active = false`,
+    `embedded.answering = true`.
+21. **025·AC6** Con el modelo tardando 5 s, entra un mensaje; cuando el modelo
+    ya lo recibió y sigue pensando, entra un segundo. El agente gasta **un**
+    turno más: dos peticiones al modelo en total, también después de esperar
+    otra ventana (no entra en bucle).
+22. **025·AC7** En la segunda petición el modelo lee: cliente (primer mensaje),
+    agente (su respuesta), cliente (segundo mensaje).
+23. **025·AC8** La conversación tiene dos salientes, uno por pregunta.
+24. **025·AC5b** Entra un mensaje y el operador contesta desde la bandeja con
+    la ventana abierta: el modelo no recibe ninguna petición por ese mensaje,
+    el único saliente es el de la persona y la IA sigue encendida. El
+    siguiente mensaje del cliente sí lo contesta el agente.
+25. `dispatch.pending = 0`: nada de esto pasó por el outbox.
+
+**025·AC9** (un mensaje que entra con el turno arrancado pero antes de que abra
+el historial se contesta en ese turno) es una ventana de milisegundos que el
+guion no puede provocar: lo cubre `quedanDebidos` en
+`tests/unit/orden-turno.test.ts`.
+
 ## Comprobaciones a mano
+
+- **025·AC11 — actualizar desde 1.5.** Sobre una base migrada hasta `0016`, con
+  una fila `pendiente` en `dispatch`: el migrador aplica `0017` (dos pasadas,
+  la segunda sin efecto), la fila queda con `message_ids` nulo, y con la app
+  arrancada el cerebro recibe ese despacho con su mensaje y la fila pasa a
+  `entregado`.
 
 - **AC9 — reanudar tras un reinicio.** Con la app detenida, insertar una fila
   `pendiente` en `dispatch` (con `not_before` ya vencido) para una conversación

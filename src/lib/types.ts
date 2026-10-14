@@ -16,6 +16,13 @@ export type ConversationDto = {
   unreadCount: number;
   windowOpen: boolean;
   windowRemainingMs: number;
+  /**
+   * 024 — La ventana humana del canal (Instagram y Messenger:
+   * hasta 7 días con la etiqueta de agente humano). `null` en un canal que no
+   * la tiene. `open` = la ventana normal ya cerró pero una persona todavía
+   * puede contestar; `remainingMs` es lo que le queda.
+   */
+  humanWindow: { open: boolean; remainingMs: number } | null;
   preview: string | null;
   /** 018: el anuncio que abrió la conversación, para la marca de la lista. */
   anuncio: {

@@ -35,6 +35,8 @@ const prefixes = {
   dispatch: "dsp",
   // 022 — lead routing
   leadRoutingMember: "lrm",
+  // 026 — el aviso de que una conversación se eliminó
+  olvido: "olv",
 } as const;
 
 export type IdKind = keyof typeof prefixes;

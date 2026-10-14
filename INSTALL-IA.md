@@ -102,7 +102,7 @@ cada uno está en `.env.example`): `META_APP_SECRET`, `BOT_API_KEY` y
 6. **Despliega** y espera el healthcheck verde (`/api/health`; el start-period
    cubre las migraciones).
 7. **Verifica**: `https://<dominio>/api/health` responde
-   `{"ok":true,"version":"1.5.0",…}` y `https://<dominio>/login` carga. Si la
+   `{"ok":true,"version":"1.5.1",…}` y `https://<dominio>/login` carga. Si la
    respuesta trae `"mediaWritable"` (desde 1.5.0), `true`
    confirma que el volumen del paso 3 quedó bien montado.
 
@@ -142,7 +142,7 @@ docker compose up -d
 - El compose ya monta el volumen `vocero_app_data` en `/data` (adjuntos, logo
   e icono): no hay que definir `MEDIA_DIR`.
 - Verifica: `docker compose ps` (tres servicios healthy) y
-  `https://<dominio>/api/health` → `{"ok":true,"version":"1.5.0",…}` (`"mediaWritable":true` confirma el volumen).
+  `https://<dominio>/api/health` → `{"ok":true,"version":"1.5.1",…}` (`"mediaWritable":true` confirma el volumen).
 
 ## Cierre (obligatorio decirlo al usuario)
 
@@ -163,7 +163,7 @@ docker compose up -d
 - App unhealthy al arrancar → revisa logs del contenedor: casi siempre es una
   variable faltante (la validación de entorno lista cuál) o la BD inaccesible.
 - Coolify no puede descargar la imagen → revisa la etiqueta: va sin `v`
-  (`1.5.0`, no `v1.5.0`). En un VPS ARM la imagen no corre: usa la variante
+  (`1.5.1`, no `v1.5.1`). En un VPS ARM la imagen no corre: usa la variante
   que construye desde el código.
 - `ENCRYPTION_KEY` inválida → debe ser EXACTAMENTE 32 bytes en base64
   (44 caracteres): regénérala con `openssl rand -base64 32`.

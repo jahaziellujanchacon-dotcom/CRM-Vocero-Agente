@@ -14,7 +14,8 @@ import { iniciarWorker, programarTanda } from "@/server/dispatch/worker";
  */
 export async function despacharAlCerebro(
   conversationId: string,
-  organizationId: string
+  organizationId: string,
+  messageId: string
 ): Promise<void> {
   try {
     const [conv] = await getDb()
@@ -40,7 +41,13 @@ export async function despacharAlCerebro(
     // camino.
     if (!conv.aiEnabled || conv.handoffAt || conv.isTest) return;
 
-    const { notBefore } = await encolarDespacho({ organizationId, conversationId });
+    // 025 — El despacho anota qué entrante lo provoca: es lo que le debe al
+    // cerebro, aunque después la conversación tenga una respuesta.
+    const { notBefore } = await encolarDespacho({
+      organizationId,
+      conversationId,
+      messageIds: [messageId],
+    });
     iniciarWorker();
     // Que despierte justo cuando la ventana venza, no en su siguiente barrido.
     programarTanda(notBefore);

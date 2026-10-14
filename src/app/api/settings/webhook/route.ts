@@ -25,6 +25,8 @@ export const GET = withAuth(async () => {
     url,
     instagramUrl: isChannelEnabled("instagram") ? webhookUrl("ig") : null,
     messengerUrl: isChannelEnabled("messenger") ? webhookUrl("messenger") : null,
+    // 022: la URL que se da de alta en Zernio para los mensajes de TikTok.
+    tiktokUrl: isChannelEnabled("tiktok") ? webhookUrl("tiktok") : null,
     verifyToken: env.META_WEBHOOK_VERIFY_TOKEN,
     isHttps: url.startsWith("https://"),
     signatureLayer: Boolean(env.META_APP_SECRET),

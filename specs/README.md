@@ -18,8 +18,13 @@ producto** — y saberlo antes de leerla ahorra una confusión.
 | `019-resultados` | Ligero | spec (puerto de la pantalla Resultados de Vocero Cloud, sin gasto publicitario ni migración) |
 | `020-token-ia-ui` | Ligero, con el modelo de datos dentro | spec (puerto de `ai_credentials` de Vocero Cloud, #85: Ajustes → IA, migración aditiva `0015`, sin registro de llamadas) |
 | `021-despacho-estandar` | Ciclo completo | spec, plan, data-model, 1 contrato, tasks (#89: el CRM le despacha cada turno al cerebro; puerto del despachador de Vocero Cloud, migración aditiva `0016`) |
-| `022-reparto-de-leads` | Ciclo completo | spec, plan, data-model, 1 contrato, tasks (IntoSales: vendedor asignado a cada lead, reparto por turno y visibilidad por vendedor; migración aditiva `0017`) |
-| `023-datos-de-ejemplo-por-rubro` | Ligero | spec (comandos `seed:academy`, `seed:realestate` y `seed:fashion`; sin migración) |
+| `022-canal-tiktok` | Ciclo completo | spec, plan, tasks (TikTok por Zernio sobre los cimientos de 014 y 017; migración aditiva `0018`; la ventana y los límites pasan a declararse por canal) |
+| `023-ajustes-canales` | Ligero | spec (pantalla de Instagram, Ajustes → Estado, la cuenta de Zernio resuelta contra la llave, un secreto de firma para todos los canales y el webhook dado de alta por el CRM; puerto de cuatro arreglos de un CRM de cliente, sin migración) |
+| `024-texto-social-ventana-humana` | Ligero | spec (el texto de la IA sale sin formato en redes; la ventana humana de 7 días de Instagram y Messenger pasa a ser una capacidad del canal con una sola puerta; puerto de dos specs de un CRM de cliente, sin migración) |
+| `026-eliminar-conversacion` | Ciclo completo | spec, plan, tasks (eliminar una conversación o el contacto entero y pedirle al cerebro que la olvide; puerto de Vocero Cloud #106; sin migración, enmienda el contrato del 021 con el evento `conversation.deleted`) |
+| `025-despacho-recuerda` | Ciclo completo | spec, plan, tasks (el despacho anota qué mensajes debe; puerto de Vocero Cloud #111, #116 y #117, migración aditiva `0017`; enmienda el contrato del 021) |
+| `026-reparto-de-leads` | Ciclo completo | spec, plan, data-model, 1 contrato, tasks (IntoSales: vendedor asignado a cada lead, reparto por turno y visibilidad por vendedor; migración aditiva `0017`) |
+| `027-datos-de-ejemplo-por-rubro` | Ligero | spec (comandos `seed:academy`, `seed:realestate` y `seed:fashion`; sin migración) |
 
 Los tres carriles —ciclo completo, ligero y exento— están definidos en el
 [Principio VI de la constitución](../.specify/memory/constitution.md). El

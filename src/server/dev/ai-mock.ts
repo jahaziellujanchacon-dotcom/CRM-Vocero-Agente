@@ -40,6 +40,53 @@ export function aiMockModels(): { id: string; name: string }[] {
   ];
 }
 
+/**
+ * 025 — Lo que el guion necesita para probar el turno del agente incluido.
+ *
+ * `demoraMs` hace que el modelo «piense»: es lo que deja meter un mensaje con
+ * el turno en curso. Y se guarda lo que se le preguntó, porque la respuesta
+ * sola no dice en qué ORDEN leyó la conversación — y ese orden es justo lo que
+ * decide si atiende el mensaje que entró mientras pensaba.
+ */
+type Peticion = { at: string; mensajes: InMessage[] };
+type EstadoIa = { demoraMs: number; peticiones: Peticion[] };
+
+const globalForIa = globalThis as unknown as { __voceroAiMock?: EstadoIa };
+
+function estadoIa(): EstadoIa {
+  globalForIa.__voceroAiMock ??= { demoraMs: 0, peticiones: [] };
+  return globalForIa.__voceroAiMock;
+}
+
+/** Consulta o configura el mock: `?demoraMs=3000`, `?reset=1`. */
+export function aiMockEstado(params: URLSearchParams): EstadoIa {
+  const e = estadoIa();
+  const demoraMs = params.get("demoraMs");
+  if (demoraMs !== null) {
+    e.demoraMs = Math.min(Math.max(Number(demoraMs) || 0, 0), 60_000);
+  }
+  if (params.get("reset") === "1") e.peticiones = [];
+  return e;
+}
+
+/**
+ * Anota la petición y espera lo configurado. El juez del Laboratorio no se
+ * anota ni se demora: lo que se observa es la charla con el cliente.
+ */
+export async function aiMockRegistrar(messages: InMessage[]): Promise<void> {
+  if (messages.some((m) => m.role === "system" && m.content.includes(JUDGE_MARKER))) {
+    return;
+  }
+  const e = estadoIa();
+  // Sin el prompt de sistema: es largo, y lo que se comprueba es la charla.
+  e.peticiones.push({
+    at: new Date().toISOString(),
+    mensajes: messages.filter((m) => m.role !== "system"),
+  });
+  if (e.peticiones.length > 50) e.peticiones.shift();
+  if (e.demoraMs > 0) await new Promise((r) => setTimeout(r, e.demoraMs));
+}
+
 export function aiMockCompletion(messages: InMessage[]): string {
   const system = messages.find((m) => m.role === "system")?.content ?? "";
   const lastUser =

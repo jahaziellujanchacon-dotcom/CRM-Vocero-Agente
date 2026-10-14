@@ -129,7 +129,7 @@ export const contact = pgTable(
      * 014: canal por el que vive este contacto. Aditivo y con default: toda
      * fila existente sigue significando exactamente lo mismo.
      */
-    channel: text("channel", { enum: ["whatsapp", "instagram", "messenger"] })
+    channel: text("channel", { enum: ["whatsapp", "instagram", "messenger", "tiktok"] })
       .notNull()
       .default("whatsapp"),
     /**
@@ -402,7 +402,7 @@ export const conversation = pgTable(
      * 014: canal de la conversacion. Denormalizado del contacto a proposito:
      * el ruteo de salida y el filtro de la bandeja lo leen en cada mensaje.
      */
-    channel: text("channel", { enum: ["whatsapp", "instagram", "messenger"] })
+    channel: text("channel", { enum: ["whatsapp", "instagram", "messenger", "tiktok"] })
       .notNull()
       .default("whatsapp"),
     /**
@@ -644,6 +644,43 @@ export const messengerCredentials = pgTable(
     uniqueIndex("messenger_credentials_org_uq").on(t.organizationId),
     uniqueIndex("messenger_credentials_page_uq").on(t.pageId),
     index("messenger_credentials_account_ref_idx").on(t.accountRef),
+  ]
+);
+
+/**
+ * 022 — Credenciales del canal de TikTok.
+ *
+ * TikTok no abre su API de mensajes a una app propia como hace Meta: llega por
+ * la API unificada de Zernio. `source` existe, con un solo valor, para que una
+ * fuente futura no pida otra migración (mismo patrón que
+ * `messenger_credentials`).
+ */
+export const tiktokCredentials = pgTable(
+  "tiktok_credentials",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    source: text("source", { enum: ["zernio"] }).notNull().default("zernio"),
+    /** `accountId` de la cuenta en Zernio: por él enruta el webhook. */
+    accountRef: text("account_ref").notNull(),
+    /** Usuario de TikTok, solo para enseñarlo en Ajustes. */
+    username: text("username"),
+    tokenCipher: text("token_cipher").notNull(),
+    tokenIv: text("token_iv").notNull(),
+    tokenTag: text("token_tag").notNull(),
+    /** Secreto HMAC de las entregas de Zernio; sin él protege solo la URL. */
+    webhookSecret: text("webhook_secret"),
+    status: text("status", { enum: ["connected", "reconnect_required"] })
+      .notNull()
+      .default("connected"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("tiktok_credentials_org_uq").on(t.organizationId),
+    uniqueIndex("tiktok_credentials_account_ref_uq").on(t.accountRef),
   ]
 );
 
@@ -1202,6 +1239,17 @@ export const dispatch = pgTable(
     firstMessageAt: timestamp("first_message_at").notNull(),
     lastMessageAt: timestamp("last_message_at").notNull(),
     leasedUntil: timestamp("leased_until"),
+    /**
+     * 025 — Los entrantes que este despacho le DEBE al cerebro: los que lo
+     * encolaron o lo extendieron.
+     *
+     * La ráfaga se delimita por el último saliente, y eso confunde «sin
+     * responder» con «sin entregar»: lo que el cliente escribe mientras el
+     * cerebro piensa queda DETRÁS de su respuesta. Con los ids anotados, ese
+     * mensaje viaja aunque ya haya una respuesta después de él. Nulo en filas
+     * anteriores a esta columna, que se comportan como antes.
+     */
+    messageIds: jsonb("message_ids").$type<string[]>(),
     /** Motivo del último fallo. Nunca el cuerpo firmado ni la llave. */
     lastError: text("last_error"),
     createdAt: timestamp("created_at").notNull().defaultNow(),

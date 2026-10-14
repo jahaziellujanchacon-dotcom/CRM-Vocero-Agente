@@ -16,7 +16,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
  * ediciones. La única diferencia está en `mediaId`, y se explica abajo.
  */
 
-export type CanalDelEvento = "whatsapp" | "instagram" | "messenger";
+export type CanalDelEvento = "whatsapp" | "instagram" | "messenger" | "tiktok";
 
 export type MensajeDelEvento = {
   id: string;
@@ -127,10 +127,62 @@ function mensajeDelEvento(m: MensajeParaEvento): MensajeDelEvento {
   return { ...base, mimeType: m.media.mimeType, caption: m.media.caption };
 }
 
+/**
+ * 026 — Quien administra el negocio eliminó una conversación: el cerebro tiene
+ * que olvidarla.
+ *
+ * Viaja a la MISMA URL y con la MISMA firma que un despacho. Se distingue por
+ * `type`, que un despacho no lleva: quien no conozca este evento ve un cuerpo
+ * sin `messages` y lo rechaza, que es inofensivo — no se reintenta.
+ *
+ * No lleva el contenido de lo borrado, solo con qué encontrarlo. `identity` va
+ * porque un cerebro suele indexar su memoria por persona, no por el id de
+ * conversación del CRM.
+ */
+export type EventoOlvido = {
+  type: "conversation.deleted";
+  eventId: string;
+  organization: { id: string; slug: string | null };
+  conversation: { id: string; channel: CanalDelEvento };
+  contact: { id: string; identity: string };
+  deletedAt: string;
+};
+
+export const TIPO_OLVIDO = "conversation.deleted" as const;
+
+/**
+ * El orden de las claves es contrato: se firma el JSON tal como sale de aquí.
+ * Es el mismo cuerpo que manda Vocero Cloud, y la prueba gemela de `nea-agent`
+ * (`tests/test_olvido.py`) lo tiene copiado byte a byte, igual que
+ * `tests/unit/olvido-contrato.test.ts` aquí.
+ */
+export function construirEventoOlvido(datos: {
+  eventId: string;
+  organization: { id: string; slug: string | null };
+  conversation: { id: string; channel: CanalDelEvento };
+  contact: { id: string; identity: string };
+  deletedAt: Date;
+}): EventoOlvido {
+  return {
+    type: TIPO_OLVIDO,
+    eventId: datos.eventId,
+    organization: {
+      id: datos.organization.id,
+      slug: datos.organization.slug,
+    },
+    conversation: {
+      id: datos.conversation.id,
+      channel: datos.conversation.channel,
+    },
+    contact: { id: datos.contact.id, identity: datos.contact.identity },
+    deletedAt: datos.deletedAt.toISOString(),
+  };
+}
+
 export const CABECERA_FIRMA = "x-vocero-signature";
 export const CABECERA_DISPATCH = "x-vocero-dispatch-id";
 export const CABECERA_ORG = "x-vocero-organization";
-/** Reservada para eventos que no son un turno. La raíz aún no manda ninguno. */
+/** Para los eventos que no son un turno: hoy, `conversation.deleted` (026). */
 export const CABECERA_EVENTO = "x-vocero-event";
 
 /**

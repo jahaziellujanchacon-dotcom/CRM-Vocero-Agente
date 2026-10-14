@@ -4,14 +4,15 @@ import { leerConfigDespacho } from "@/server/brains/config";
 import {
   construirEvento,
   entregar,
-  hayMensajesSinDespachar,
   rafagaDe,
+  sinDespachar,
 } from "@/server/brains/deliver";
 import {
   caducarAHumano,
   descartarDespacho,
   encolarDespacho,
   marcarEntregado,
+  mensajesAnotados,
   pasarAHumano,
   reintentarOCaducar,
   renovarLease,
@@ -189,7 +190,19 @@ async function procesar(fila: FilaDespacho): Promise<void> {
 
   const evento = await construirEvento(fila);
   if (!evento) {
-    await descartarDespacho(fila, "ya no hay mensajes por contestar");
+    await descartarDespacho(fila, "la conversación ya no existe");
+    return;
+  }
+  /**
+   * 025 — Un despacho sin mensajes no se entrega.
+   *
+   * Pasa cuando lo que lo provocó ya lo contestó una persona dentro de la
+   * ventana. No es una caída del cerebro: mandárselo vacío sería pedirle un
+   * turno sobre nada —Nea lo rechaza con 422—, y un 4xx no se reintenta: la
+   * conversación acabaría con un humano por un fallo que no existió.
+   */
+  if (evento.messages.length === 0) {
+    await descartarDespacho(fila, "sin mensajes por despachar");
     return;
   }
 
@@ -200,12 +213,28 @@ async function procesar(fila: FilaDespacho): Promise<void> {
 
   if (resultado.ok) {
     if (!(await marcarEntregado(fila))) return;
-    // Lo que entró mientras el evento iba en vuelo no extendió la fila.
-    const ahora = await rafagaDe(fila.organizationId, fila.conversationId);
-    if (hayMensajesSinDespachar(evento.messages.map((m) => m.id), ahora)) {
+    /**
+     * 025 — Lo que entró mientras el evento iba en vuelo no viajó en él.
+     *
+     * El evento se armó antes de que ese mensaje existiera. `encolarDespacho`
+     * lo dejó anotado en la fila, así que aquí se relee: lo anotado (y lo que
+     * haya en la ráfaga) menos lo que el cerebro recibió es lo que se le sigue
+     * debiendo, y sale en otro despacho con esos ids anotados.
+     */
+    const actual = await rafagaDe(
+      fila.organizationId,
+      fila.conversationId,
+      await mensajesAnotados(fila)
+    );
+    const pendientes = sinDespachar(
+      evento.messages.map((m) => m.id),
+      actual
+    );
+    if (pendientes.length) {
       const { notBefore } = await encolarDespacho({
         organizationId: fila.organizationId,
         conversationId: fila.conversationId,
+        messageIds: pendientes,
       });
       programarTanda(notBefore);
     }

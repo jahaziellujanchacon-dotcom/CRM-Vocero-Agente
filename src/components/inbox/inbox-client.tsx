@@ -35,7 +35,14 @@ const PANEL_MEDIA_QUERY = "(min-width: 1280px)";
 const isWideEnoughForPanel = () =>
   typeof window !== "undefined" && window.matchMedia(PANEL_MEDIA_QUERY).matches;
 
-export function InboxClient({ channels }: { channels: readonly Channel[] }) {
+export function InboxClient({
+  channels,
+  canDelete = false,
+}: {
+  channels: readonly Channel[];
+  /** 026 — Eliminar es irreversible: solo quien administra ve la opción. */
+  canDelete?: boolean;
+}) {
   const multiChannel = channels.length > 1;
   const [conversations, setConversations] = useState<ConversationDto[] | null>(
     null
@@ -107,6 +114,16 @@ export function InboxClient({ channels }: { channels: readonly Channel[] }) {
     [refetchMessages]
   );
 
+  /** 026 — Saca una conversación eliminada de todo lo que esta pestaña recuerda. */
+  const quitarConversacion = useCallback((id: string) => {
+    setConversations((prev) => prev?.filter((c) => c.id !== id) ?? prev);
+    setPending((prev) => prev.filter((p) => p.conversationId !== id));
+    if (selectedIdRef.current === id) {
+      setSelectedId(null);
+      setMessages([]);
+    }
+  }, []);
+
   // Enlace directo desde Contactos/Pipeline: /inbox?contact=<id>
   const searchParams = useSearchParams();
   const contactParam = searchParams.get("contact");
@@ -151,6 +168,13 @@ export function InboxClient({ channels }: { channels: readonly Channel[] }) {
       void refetchConversations();
       // El agente movió de etapa o cambió el handoff: refresca el panel en vivo.
       setDetailRev((v) => v + 1);
+    },
+    onConversationDeleted: ({ conversationId }) => {
+      // 026: la eliminó alguien del equipo (o esta misma pestaña). Se quita
+      // ya, sin esperar al refetch, para que nadie le escriba a un hilo que
+      // no existe.
+      quitarConversacion(conversationId);
+      void refetchConversations();
     },
     onReconnect: () => {
       // Catch-up tras reconexión (contrato sse.md): refetch completo.
@@ -270,6 +294,30 @@ export function InboxClient({ channels }: { channels: readonly Channel[] }) {
     [refetchConversations]
   );
 
+  /** 026 — Devuelve el mensaje de error, o null si la conversación ya no existe. */
+  const deleteConversation = useCallback(
+    async (alsoContact: boolean): Promise<string | null> => {
+      const id = selectedIdRef.current;
+      if (!id) return "Sin conversación seleccionada";
+      const res = await fetch(
+        `/api/conversations/${id}${alsoContact ? "?contacto=1" : ""}`,
+        { method: "DELETE" }
+      ).catch(() => null);
+      if (!res) return "Sin conexión con el servidor";
+      // 404 = otra persona la eliminó primero: para quien lo pidió, ya está.
+      if (!res.ok && res.status !== 404) {
+        const data = (await res.json().catch(() => null)) as {
+          error?: { message?: string };
+        } | null;
+        return data?.error?.message ?? "No se pudo eliminar la conversación";
+      }
+      quitarConversacion(id);
+      void refetchConversations();
+      return null;
+    },
+    [quitarConversacion, refetchConversations]
+  );
+
   return (
     <div className="flex h-full">
       {/* Móvil: una columna a la vez. La lista cede la pantalla completa al
@@ -322,12 +370,19 @@ export function InboxClient({ channels }: { channels: readonly Channel[] }) {
                       "mt-0.5 font-mono text-[10.5px] tracking-[0.04em]",
                       selected.windowOpen
                         ? "font-medium text-success-text"
-                        : "text-text-3"
+                        : selected.humanWindow?.open
+                          ? "font-medium text-info-text"
+                          : "text-text-3"
                     )}
                   >
                     {selected.windowOpen
                       ? "ventana abierta"
-                      : selected.contact.phone
+                      : selected.humanWindow?.open
+                        ? // 024: pasadas 24 h en Instagram o Messenger solo
+                          // contesta una persona. No se llama «atención
+                          // humana»: eso ya es el traspaso, con la IA en pausa.
+                          "ventana humana"
+                        : selected.contact.phone
                         ? formatPhone(selected.contact.phone)
                         : // Instagram no tiene teléfono: decir "Sin teléfono"
                           // sería contestar una pregunta que nadie hizo.
@@ -393,6 +448,7 @@ export function InboxClient({ channels }: { channels: readonly Channel[] }) {
               conversation={selected}
               refreshKey={detailRev}
               onPatchConversation={patchConversation}
+              onDeleteConversation={canDelete ? deleteConversation : undefined}
               onClose={() => togglePanel(false)}
             />
           </div>

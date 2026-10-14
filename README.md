@@ -66,6 +66,11 @@ cuál: «Anuncio · titular» en la lista, un filtro «Anuncios», y en el panel
 contacto el creativo, el texto y el enlace del anuncio. No pide bandera ni
 credenciales: el dato llega en el mismo webhook.
 
+Una conversación se puede **eliminar** desde el panel del contacto (lo ve quien
+administra el negocio): se van los mensajes, sus adjuntos y lo que el agente
+aprendió en ella, y el contacto se queda en su etapa salvo que pidas borrarlo
+también. Si la persona vuelve a escribir, el agente empieza de cero.
+
 ### 📊 Contactos y pipeline kanban
 
 Cada persona que escribe queda registrada sola y entra al pipeline
@@ -116,8 +121,10 @@ cualquier otra conversación.
 | `GET /api/bot/availability` | Con la agenda encendida: los horarios para ofrecer, que quedan registrados como ofrecidos. Con `date=AAAA-MM-DD`, todas las horas libres de ese día; `query` dice hasta dónde llega lo consultado |
 | `POST` · `PATCH /api/bot/bookings` | Con la agenda encendida: reservar (201) o mover (200) una cita, solo en un horario que se ofreció |
 
-Los 409 vienen tipados (`ai_paused`, `window_closed`, `sandbox_violation`) para
-que tu bot sepa si callarse, mandar plantilla o rendirse. El guion de pruebas
+Los 409 vienen tipados (`ai_paused`, `window_closed`, `sandbox_violation`,
+`message_limit`) para que tu bot sepa si callarse, mandar plantilla o rendirse.
+`message_limit` significa que el canal no admite más mensajes hasta que el
+cliente vuelva a escribir (hoy, el tope de 10 de TikTok): no reintentes. El guion de pruebas
 está en [`tests/e2e/us-bot-api.md`](tests/e2e/us-bot-api.md).
 
 La API primero revisa la llave y después cuenta: con la llave buena caben 1200
@@ -297,7 +304,7 @@ código si no la encuentra ni en el registro ni en tu máquina. Así que:
   `--build` Compose puede correr la oficial en vez de tus cambios.
 
 Caddy emite el certificado HTTPS solo. Verifica con
-`https://crm.tudominio.com/api/health` → `{"ok":true,"version":"1.5.0",…}`.
+`https://crm.tudominio.com/api/health` → `{"ok":true,"version":"1.5.1",…}`.
 
 ### Otras plataformas: Render, Fly y Railway
 
@@ -306,7 +313,7 @@ imagen publicada, montan `/data` y vigilan `/api/health`; cada uno declara lo
 que su plataforma le deja declarar y documenta, en comentarios, lo que queda a
 mano. La imagen va fijada a la versión (una prueba lo exige). Verifica igual
 que arriba: `curl -s https://<tu-url>/api/health` →
-`{"ok":true,"version":"1.5.0",…,"mediaWritable":true}`.
+`{"ok":true,"version":"1.5.1",…,"mediaWritable":true}`.
 
 **Render** — [`render.yaml`](render.yaml) es un Blueprint completo: servicio
 web desde la imagen, base Postgres gestionada, disco de 1 GB en `/data`,
@@ -473,7 +480,7 @@ del cliente se conecta con el **override de callback por WABA**:
 > Graph** (botón "Sincronizar" en Configuración → Plantillas), así el modo
 > agencia ve las aprobaciones igual.
 
-## Canales opcionales: Instagram y Messenger
+## Canales opcionales: Instagram, Messenger y TikTok
 
 WhatsApp es el canal por el que existe IntoSales y siempre está encendido. Los
 demás viajan en el mismo código, **apagados por defecto** ([ADR-001](docs/adr-001-canales-opcionales.md)):
@@ -481,12 +488,48 @@ una instancia que no los usa no ve pantallas, webhooks ni variables suyas.
 Se encienden con una variable de despliegue:
 
 ```bash
-CHANNELS=whatsapp,instagram,messenger   # los que quieras; whatsapp siempre va
+CHANNELS=whatsapp,instagram,messenger,tiktok   # los que quieras; whatsapp siempre va
 ```
 
 Con más de un canal encendido, la Bandeja enseña el distintivo de cada
 conversación y permite filtrar por canal. El contacto, el pipeline, la ficha
 y el agente son los mismos: un lead es un lead, escriba por donde escriba.
+
+El agente escribe igual para todos los canales y Vocero lo adapta al salir:
+en Instagram, Messenger y TikTok, que no dibujan las negritas de WhatsApp, su
+texto llega sin asteriscos, con viñetas y con los enlaces legibles.
+
+**Configuración → Estado** reúne todos los canales encendidos: si están
+conectados, cuándo entró el último mensaje de un cliente y, para los que
+llegan por Zernio, cómo están la cuenta y el webhook. Es el primer sitio que
+mirar cuando «no me llegan los mensajes».
+
+### Conectar por Zernio (Instagram, Messenger o TikTok)
+
+[Zernio](https://zernio.com) es una API unificada: vinculas ahí tus redes, con
+tu propia cuenta, y una sola llave las entrega todas. En Vocero es igual para
+los tres canales:
+
+1. En Zernio vincula la red (**Accounts → Connect**) y crea una API key
+   (**Settings → API Keys**; empieza con `sk_` y se muestra una sola vez).
+2. En Vocero abre la pantalla del canal, elige *Zernio*, pega la llave y
+   pulsa **Probar y conectar**. Solo el propietario puede hacerlo.
+
+No hay que copiar ningún id ni dar de alta nada más en Zernio:
+
+- **La cuenta la encuentra Vocero** con esa llave. Si la llave tiene varias
+  cuentas de esa red (una agencia), te las ofrece para elegir.
+- **El webhook lo da de alta Vocero** en tu Zernio, con el evento
+  `message.received`, un secreto de firma que él genera y **limitado a tus
+  cuentas conectadas**. Un webhook de Zernio sin ese límite recibe los
+  mensajes de todas las cuentas de la llave. Los demás webhooks que tengas en
+  Zernio no se tocan.
+- Si un día el webhook se desactiva o le falta una cuenta, **Configuración →
+  Estado** lo dice y lo repara con un botón.
+
+Cada entrega se verifica con la firma de Zernio. Si actualizas desde una
+versión anterior y ya tenías el webhook creado a mano, sigue funcionando: al
+abrir **Estado** verás si le falta algo.
 
 ### Messenger (página de Facebook)
 
@@ -517,9 +560,11 @@ Dos formas de traer los mensajes; se elige en **Configuración → Messenger**.
    pantalla. Suscribe la página a la app.
 
 Desde ese momento, lo que la gente le escribe a la página entra a la bandeja
-como `Messenger`, con el nombre de su perfil, y lo que respondas desde IntoSales
-(tú o el agente) llega a su chat. Fuera de la ventana de 24 h la respuesta sale
-con la etiqueta `HUMAN_AGENT` de Meta (hasta 7 días); no hay plantillas.
+como `Messenger`, con el nombre de su perfil, y lo que respondas desde Vocero
+(tú o el agente) llega a su chat. No hay plantillas: pasadas 24 horas del
+último mensaje del cliente ya solo puede contestar una persona, hasta 7 días
+(sale con la etiqueta `HUMAN_AGENT` de Meta); la bandeja lo avisa y dice
+cuánto queda. El agente no contesta fuera de las 24 horas.
 Hoy el canal es de texto: los adjuntos que te manden se ven como
 «📎 Imagen» para que sepas que llegaron, y los adjuntos salientes no están.
 
@@ -529,11 +574,54 @@ Por Zernio ese trámite ya está resuelto del lado de ellos.
 
 ### Instagram (DMs del perfil profesional)
 
-Mismo modelo, con dos fuentes posibles: una app propia de Meta (perfil del
-negocio como tester) o [Zernio](https://zernio.com) como API unificada. La
-conexión se guarda por la API de ajustes (`PUT /api/settings/instagram`) y el
-webhook vive en `/api/webhooks/ig/<token>`. El detalle está en
-[`specs/014-canal-instagram`](specs/014-canal-instagram/spec.md).
+Dos formas de traer los mensajes; se elige en **Configuración → Instagram**.
+La cuenta tiene que ser profesional (de empresa o de creador). No necesita una
+página de Facebook vinculada: eso solo lo pide Messenger.
+
+**Con Zernio**: sigue [Conectar por Zernio](#conectar-por-zernio-instagram-messenger-o-tiktok).
+
+**Con una app propia de Meta**:
+
+1. En [developers.facebook.com](https://developers.facebook.com) crea (o usa)
+   una app con el producto **Instagram** y genera el token de la cuenta con
+   los permisos `instagram_business_basic` e
+   `instagram_business_manage_messages`. Anota el **ID de la cuenta**.
+2. En Vocero, **Configuración → Instagram**: elige *App propia de Meta*, pega
+   el ID y el token y pulsa *Probar y guardar*.
+3. En la app de Meta, **Instagram → Webhooks**: objeto `instagram`, campo
+   `messages`, con la URL de callback y el token de verificación que enseña
+   la pantalla.
+
+A la bandeja entran los mensajes directos; los comentarios de las
+publicaciones no. No hay plantillas: pasadas 24 horas del último mensaje del
+cliente ya solo puede contestar una persona, hasta 7 días (etiqueta
+`HUMAN_AGENT`); el agente no. Sin App Review, una
+app propia solo recibe mensajes de perfiles con un rol en la app. El detalle
+del canal está en [`specs/014-canal-instagram`](specs/014-canal-instagram/spec.md).
+
+### TikTok (mensajes directos de una cuenta de negocio)
+
+TikTok no entrega mensajes a una app propia: llegan por
+[Zernio](https://zernio.com), con tu cuenta de Zernio.
+
+Sigue [Conectar por Zernio](#conectar-por-zernio-instagram-messenger-o-tiktok)
+desde **Configuración → TikTok**. Si la cuenta es personal, Vocero la conecta
+pero te avisa ahí mismo y en **Estado**: TikTok no le entrega mensajes hasta
+que sea Business.
+
+Lo que TikTok impone, y Vocero te dice antes de que lo descubras con un
+mensaje rechazado:
+
+- La cuenta tiene que ser **TikTok Business**, registrada fuera de la Unión
+  Europea, Suiza y Reino Unido, con los mensajes directos abiertos.
+- **Tú no inicias**: solo contestas a quien te escribió.
+- Tras el último mensaje del cliente puedes mandar **hasta 10 mensajes, en 48
+  horas**. No hay plantilla que reabra: el undécimo se rechaza (409
+  `message_limit`) hasta que el cliente vuelva a escribir.
+- Cada mensaje es texto, de hasta 6,000 caracteres. Las imágenes entran (como
+  aviso de que llegó una), pero todavía no se envían desde Vocero.
+
+El detalle está en [`specs/022-canal-tiktok`](specs/022-canal-tiktok/spec.md).
 
 ## Configuración de la IA
 
@@ -706,7 +794,7 @@ que dice qué trae cada versión y qué hacer para actualizar. Al crear el tag
 Las versiones 1.5 y 2.0 tienen plan propio:
 [docs/plan-1.5-y-2.0.md](docs/plan-1.5-y-2.0.md).
 
-- Adjuntos en Instagram y Messenger (hoy esos canales son de texto; en
+- Adjuntos en Instagram, Messenger y TikTok (hoy esos canales son de texto; en
   WhatsApp ya van y vienen con vista previa).
 - RAG para knowledge bases grandes (hoy: se inyecta completo con aviso de tamaño).
 - Personas configurables del Laboratorio y comparativas entre corridas.

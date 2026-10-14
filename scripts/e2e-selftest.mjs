@@ -982,7 +982,17 @@ async function main() {
     JSON.stringify(manual1)
   );
 
-  conv008 = await findConv008();
+  // Se espera la pausa, no un tiempo fijo: el eco guarda el mensaje y DESPUÉS
+  // pausa la IA. Leer la conversación entre un paso y otro —pasa con el
+  // servidor recién arrancado— daba la IA encendida sin que nada fallara.
+  await hasta(
+    async () => {
+      conv008 = await findConv008();
+      return conv008?.handoffReason === "manual_reply";
+    },
+    5000,
+    150
+  );
   ok(
     "la IA quedó pausada con handoff manual_reply",
     conv008?.aiEnabled === false && conv008?.handoffReason === "manual_reply",
@@ -1299,6 +1309,10 @@ async function respuestasDeBotonChecks() {
       boton?.type === "text",
       JSON.stringify((await mensajesDe(conv.id)).map((m) => [m.direction, m.type, m.text]))
     );
+    // La conversación se releyó: la de arriba se tomó en cuanto apareció, y la
+    // ingesta la crea ANTES de guardar el mensaje y anotarle la hora. Leída en
+    // ese hueco, la ventana salía cerrada sin que el producto fallara.
+    conv = (await conversacion()) ?? conv;
     ok(
       "abre la ventana de 24 h",
       conv.windowOpen === true && !!conv.lastInboundAt,

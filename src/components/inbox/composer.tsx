@@ -12,7 +12,8 @@ import {
 } from "lucide-react";
 import type { ConversationDto, TemplateDto } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { formatBytes, formatRemaining } from "./helpers";
+import { CHANNEL_LABEL } from "@/lib/channels";
+import { formatBytes, formatRemaining, formatRemainingLong } from "./helpers";
 import { TemplateSender } from "./template-sender";
 
 /** 008 — Panel secundario del clip: formulario de ubicación o contacto. */
@@ -197,7 +198,53 @@ export function Composer({
     onSent();
   }
 
-  if (!conversation.windowOpen) {
+  // 022 — TikTok no tiene plantillas ni otra forma de reabrir: con la ventana
+  // cerrada no hay nada que ofrecer, solo decir qué pasa y qué lo arregla.
+  if (!conversation.windowOpen && conversation.channel === "tiktok") {
+    return (
+      <div className="border-t bg-background px-[18px] py-3.5">
+        <div className="flex items-start gap-2 rounded-md border border-warning-soft bg-warning-tint p-3 text-sm text-warning-text">
+          <Clock3 className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={1.7} />
+          <div>
+            <p className="font-medium">La ventana de 48 horas de TikTok está cerrada.</p>
+            <p className="opacity-80">
+              TikTok solo deja contestar dentro de las 48 horas siguientes al
+              último mensaje del cliente, y no permite reabrir la conversación.
+              Podrás escribirle cuando vuelva a mandar un mensaje.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 024 — Instagram y Messenger no tienen plantillas. Pasadas 24 horas una
+  // persona todavía puede contestar (hasta 7 días, sigue abajo con su aviso);
+  // pasado ese plazo no hay nada que ofrecer salvo esperar al cliente.
+  const human = conversation.humanWindow;
+  const canal = CHANNEL_LABEL[conversation.channel];
+  if (!conversation.windowOpen && human && !human.open) {
+    return (
+      <div className="border-t bg-background px-[18px] py-3.5">
+        <div
+          data-window="closed"
+          className="flex items-start gap-2 rounded-md border border-warning-soft bg-warning-tint p-3 text-sm text-warning-text"
+        >
+          <Clock3 className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={1.7} />
+          <div>
+            <p className="font-medium">La ventana de atención de {canal} está cerrada.</p>
+            <p className="opacity-80">
+              {canal} deja contestar hasta 7 días después del último mensaje
+              del cliente, y no tiene plantillas para reabrir la conversación.
+              Podrás escribirle cuando vuelva a mandar un mensaje.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!conversation.windowOpen && !human) {
     return (
       <div className="border-t bg-background px-[18px] py-3.5">
         <div className="mb-3 flex items-start gap-2 rounded-md border border-warning-soft bg-warning-tint p-3 text-sm text-warning-text">
@@ -218,8 +265,23 @@ export function Composer({
 
   const canSubmit = file !== null || text.trim().length > 0;
 
+  const soloPersona = !conversation.windowOpen && Boolean(human?.open);
+
   return (
     <div className="border-t bg-background px-[18px] pb-3.5 pt-3">
+      {soloPersona && (
+        <div
+          data-window="human"
+          className="mb-2.5 flex items-start gap-2 rounded-md border border-info-soft bg-info-tint p-2.5 text-xs text-info-text"
+        >
+          <Clock3 className="mt-0.5 h-3.5 w-3.5 shrink-0" strokeWidth={1.7} />
+          <p>
+            <span className="font-semibold">Solo puede contestar una persona.</span>{" "}
+            Pasaron más de 24 horas desde el último mensaje del cliente: {canal}{" "}
+            te deja responder a ti hasta 7 días, al agente ya no.
+          </p>
+        </div>
+      )}
       {templates.length > 0 && !file && panel === null && (
         <div className="mb-2.5 flex flex-wrap gap-1.5">
           {templates.slice(0, 4).map((t) => (
@@ -414,7 +476,9 @@ export function Composer({
       <div className="mt-1.5 flex items-center justify-between">
         {error ? <p className="text-xs text-destructive">{error}</p> : <span />}
         <p className="font-mono text-[10.5px] tracking-[0.04em] text-text-3">
-          Ventana abierta · quedan {formatRemaining(conversation.windowRemainingMs)}
+          {soloPersona
+            ? `Ventana humana · quedan ${formatRemainingLong(human!.remainingMs)}`
+            : `Ventana abierta · quedan ${formatRemaining(conversation.windowRemainingMs)}`}
         </p>
       </div>
     </div>

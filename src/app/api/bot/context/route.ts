@@ -5,6 +5,7 @@ import { requireBotKey, resolveInstanceOrg } from "@/server/bot/auth";
 import { serializeFicha } from "@/server/bot/ficha";
 import { findContactByIdentity } from "@/server/inbox/identity";
 import { isWindowOpen, windowRemainingMs } from "@/server/inbox/window";
+import { windowMsFor } from "@/server/channels/capabilities";
 import { citasParaContexto } from "@/server/agenda/context";
 
 export const dynamic = "force-dynamic";
@@ -125,8 +126,17 @@ export async function GET(req: Request) {
       // aunque el flag siga en true.
       aiEnabled: conversation.aiEnabled && !conversation.handoffAt,
       handoffAt: conversation.handoffAt?.toISOString() ?? null,
-      windowOpen: isWindowOpen(conversation.lastInboundAt),
-      windowRemainingMs: windowRemainingMs(conversation.lastInboundAt),
+      // 022: la ventana es la del canal de la conversación.
+      windowOpen: isWindowOpen(
+        conversation.lastInboundAt,
+        new Date(),
+        windowMsFor(conversation.channel)
+      ),
+      windowRemainingMs: windowRemainingMs(
+        conversation.lastInboundAt,
+        new Date(),
+        windowMsFor(conversation.channel)
+      ),
     },
     lead: leadRows[0]
       ? { id: leadRows[0].lead.id, stageName: leadRows[0].stage.name }

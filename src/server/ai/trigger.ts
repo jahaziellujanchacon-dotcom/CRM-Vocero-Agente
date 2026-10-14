@@ -14,15 +14,21 @@ import { despacharAlCerebro } from "@/server/dispatch/encolar";
  * incluido no contesta, tenga o no proveedor de IA e interruptor encendido. Es
  * lo que evita la doble respuesta sin depender de que alguien se acuerde de
  * apagar uno.
+ *
+ * 025 — `messageId` es el entrante que provoca el turno. Quien lo lleve —el
+ * despacho en su fila, el agente incluido en su coalesce— lo anota como algo
+ * que DEBE: si el cliente escribe mientras se piensa la respuesta a lo
+ * anterior, ese mensaje queda detrás de ella y sin la nota se da por atendido.
  */
 export async function maybeRunAgentTurn(
   conversationId: string,
-  organizationId: string
+  organizationId: string,
+  messageId: string
 ): Promise<void> {
   if (despachoActivo()) {
-    await despacharAlCerebro(conversationId, organizationId);
+    await despacharAlCerebro(conversationId, organizationId, messageId);
     return;
   }
   if (!(await isAiConfiguredFor(organizationId))) return;
-  scheduleAgentTurn(conversationId);
+  scheduleAgentTurn(conversationId, messageId);
 }
