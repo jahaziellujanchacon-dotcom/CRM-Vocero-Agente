@@ -17,13 +17,13 @@ import {
  * edición cloud, para que un mismo cerebro sirva contra las dos.
  */
 
-const TZ = "America/Mexico_City";
+const TZ = "America/Lima";
 const DIA = 86_400_000;
 
-// Lunes 14 de septiembre de 2026, 10:30 en CDMX (UTC-6).
-const LUNES_1030 = new Date("2026-09-14T16:30:00.000Z");
+// Lunes 14 de septiembre de 2026, 10:30 en LIMA (UTC-5).
+const LUNES_1030 = new Date("2026-09-14T15:30:00.000Z");
 // 17:04 del mismo lunes: la hora a la que el agente dijo «tu demo es hoy a las 10:30».
-const LUNES_1704 = new Date("2026-09-14T23:04:00.000Z");
+const LUNES_1704 = new Date("2026-09-14T22:04:00.000Z");
 
 function cita(extra: Partial<FilaCita> = {}): FilaCita {
   return {

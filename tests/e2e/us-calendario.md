@@ -7,7 +7,7 @@ algo falla.
 
 **Preparación**: app en `localhost` con `WA_MOCK_ENABLED=true`,
 `META_GRAPH_BASE_URL` → wa-mock y la BD migrada. El navegador corre en
-`Asia/Tokyo` y el negocio en `America/Mexico_City` (15 h de diferencia): todo
+`Asia/Tokyo` y el negocio en `America/Lima` (15 h de diferencia): todo
 lo que se pinta o se bloquea tiene que salir en la hora del NEGOCIO. La
 bandera `AGENDA` decide qué mitad corre.
 

@@ -23,7 +23,7 @@ describe("fallo 1 · bloquear usa la hora del NEGOCIO, no la del navegador", () 
   });
 
   it("las 15:00 de Ciudad de México son las 21:00 UTC", () => {
-    expect(blockStartUtc("2026-09-24", "15:00", "America/Mexico_City")).toBe(
+    expect(blockStartUtc("2026-09-24", "15:00", "America/Lima")).toBe(
       "2026-09-24T21:00:00.000Z"
     );
   });
@@ -34,17 +34,17 @@ describe("fallo 1 · bloquear usa la hora del NEGOCIO, no la del navegador", () 
   });
 
   it("no depende de la zona del proceso (el navegador de quien mira)", () => {
-    const results = ["Asia/Tokyo", "Europe/Madrid", "America/Mexico_City", "UTC"].map((tz) => {
+    const results = ["Asia/Tokyo", "Europe/Madrid", "America/Lima", "UTC"].map((tz) => {
       process.env.TZ = tz;
-      return blockStartUtc("2026-09-24", "15:00", "America/Mexico_City");
+      return blockStartUtc("2026-09-24", "15:00", "America/Lima");
     });
     expect(new Set(results)).toEqual(new Set(["2026-09-24T21:00:00.000Z"]));
   });
 
   it("día u hora inexistentes no producen un instante", () => {
-    expect(blockStartUtc("2026-02-31", "15:00", "America/Mexico_City")).toBeNull();
-    expect(blockStartUtc("2026-09-24", "25:00", "America/Mexico_City")).toBeNull();
-    expect(blockStartUtc("", "15:00", "America/Mexico_City")).toBeNull();
+    expect(blockStartUtc("2026-02-31", "15:00", "America/Lima")).toBeNull();
+    expect(blockStartUtc("2026-09-24", "25:00", "America/Lima")).toBeNull();
+    expect(blockStartUtc("", "15:00", "America/Lima")).toBeNull();
   });
 });
 

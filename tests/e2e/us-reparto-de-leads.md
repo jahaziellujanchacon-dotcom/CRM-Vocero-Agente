@@ -63,3 +63,20 @@ Ana captura un prospecto: queda asignado a ella.
   con «Sin asignar» al pasar el puntero.
 - **Ajustes (AC13)**: Ajustes → Equipo muestra «Reparto de leads»; el
   vendedor la ve sin poder cambiarla.
+
+## Bandeja, tiempo real y Citas (automatizado el 2026-10-15)
+
+`scripts/e2e-lead-routing.mjs` contra una base vacía y la app con los mocks
+(`WA_MOCK_ENABLED=true`, `META_GRAPH_BASE_URL` → wa-mock):
+
+1. Un WhatsApp nuevo (wa-mock) entra al vendedor que le toca por turno (AC4).
+2. Ese vendedor lo ve en la Bandeja y lo recibe en vivo por SSE; el otro no lo
+   ve, no lo recibe y al tocarlo o leer sus mensajes recibe 404 (AC6–AC8).
+3. Con `AGENDA=on` en la app y en el guion: el dueño agenda una cita para un
+   contacto de cada vendedor; cada vendedor ve solo la suya (y los bloqueos),
+   el dueño ve las dos; un vendedor no puede cancelar ni agendar sobre un
+   contacto ajeno (404) y sí sobre el suyo (AC15, AC16).
+
+La higiene de Resultados por vendedor (AC17) se prueba contra PostgreSQL en
+`tests/integration/lead-scope-bookings.test.ts`.
+

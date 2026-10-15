@@ -1,4 +1,4 @@
-import { and, eq, sql, type SQL } from "drizzle-orm";
+import { and, eq, isNull, or, sql, type SQL } from "drizzle-orm";
 import type { PgColumn } from "drizzle-orm/pg-core";
 import { getDb, schema } from "@/lib/db";
 import { scoped } from "@/lib/db/tenant";
@@ -166,4 +166,36 @@ export async function canSeeMediaAsset(
     )
     .limit(1);
   return viaAd.length > 0;
+}
+
+/**
+ * 022, D11 — Condition on `booking`: a rep sees the bookings of their own
+ * contacts plus calendar blocks (no contact: they only say when there is no
+ * room). `undefined` for supervisors.
+ */
+export function visibleBookingCondition(scope: LeadScope): SQL | undefined {
+  if (scope.kind === "all") return undefined;
+  return or(isNull(schema.booking.contactId), visibleContactCondition(scope, schema.booking.contactId));
+}
+
+/** 022, D11 — Can this scope act on the booking? Someone else's is 404. */
+export async function canSeeBooking(
+  scope: LeadScope,
+  organizationId: string,
+  bookingId: string
+): Promise<boolean> {
+  if (scope.kind === "all") return true;
+  const rows = await getDb()
+    .select({ id: schema.booking.id })
+    .from(schema.booking)
+    .where(
+      scoped(
+        schema.booking.organizationId,
+        organizationId,
+        eq(schema.booking.id, bookingId),
+        visibleBookingCondition(scope)
+      )
+    )
+    .limit(1);
+  return rows.length > 0;
 }

@@ -44,7 +44,7 @@ vi.mock("@/lib/db", async (importOriginal) => {
 const periodo = resolvePeriod({
   from: "2026-03-01",
   to: "2026-03-31",
-  timezone: "America/Mexico_City",
+  timezone: "America/Lima",
 });
 
 beforeEach(() => {

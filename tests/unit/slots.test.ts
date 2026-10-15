@@ -18,16 +18,16 @@ import {
  * días cerrados. Sin luxon: si `Intl` fallara, estos tests lo gritan.
  */
 
-const MX = "America/Mexico_City";
+const PE = "America/Lima";
 const NY = "America/New_York";
 const MADRID = "Europe/Madrid";
 
 describe("zonedWallClockToUtc — hora de pared → instante", () => {
-  it("México no tiene DST desde 2022: 09:00 son las 15:00Z todo el año", () => {
-    expect(zonedWallClockToUtc("2026-08-05", "09:00", MX)?.toISOString()).toBe(
+  it("Perú no tiene DST desde 2022: 09:00 son las 15:00Z todo el año", () => {
+    expect(zonedWallClockToUtc("2026-08-05", "09:00", PE)?.toISOString()).toBe(
       "2026-08-05T15:00:00.000Z"
     );
-    expect(zonedWallClockToUtc("2026-01-14", "09:00", MX)?.toISOString()).toBe(
+    expect(zonedWallClockToUtc("2026-01-14", "09:00", PE)?.toISOString()).toBe(
       "2026-01-14T15:00:00.000Z"
     );
   });
@@ -59,22 +59,22 @@ describe("zonedWallClockToUtc — hora de pared → instante", () => {
   });
 
   it("rechaza formatos inválidos en vez de inventar una fecha", () => {
-    expect(zonedWallClockToUtc("2026-8-5", "09:00", MX)).toBeNull();
-    expect(zonedWallClockToUtc("2026-08-05", "9:00", MX)).toBeNull();
-    expect(zonedWallClockToUtc("2026-08-05", "25:00", MX)).toBeNull();
+    expect(zonedWallClockToUtc("2026-8-5", "09:00", PE)).toBeNull();
+    expect(zonedWallClockToUtc("2026-08-05", "9:00", PE)).toBeNull();
+    expect(zonedWallClockToUtc("2026-08-05", "25:00", PE)).toBeNull();
   });
 });
 
 describe("weekdayKeyOf / todayInTz", () => {
   it("da el día de la semana en la zona del negocio", () => {
-    expect(weekdayKeyOf("2026-08-05", MX)).toBe("wed");
+    expect(weekdayKeyOf("2026-08-05", PE)).toBe("wed");
     expect(weekdayKeyOf("2026-03-29", MADRID)).toBe("sun");
   });
 
   it("el día 'de hoy' depende de la zona, no del servidor", () => {
-    // 03:00Z del 6 de agosto sigue siendo 5 de agosto en México (UTC-6).
+    // 03:00Z del 6 de agosto sigue siendo 5 de agosto en Perú (UTC-5).
     const instant = new Date("2026-08-06T03:00:00.000Z");
-    expect(todayInTz(instant, MX)).toBe("2026-08-05");
+    expect(todayInTz(instant, PE)).toBe("2026-08-05");
     expect(todayInTz(instant, MADRID)).toBe("2026-08-06");
   });
 });
@@ -84,7 +84,7 @@ describe("expandWorkingDayToUtc", () => {
     const slots = expandWorkingDayToUtc(
       "2026-08-05",
       [{ start: "09:00", end: "11:00" }],
-      MX,
+      PE,
       30,
       0
     );
@@ -98,7 +98,7 @@ describe("expandWorkingDayToUtc", () => {
     const slots = expandWorkingDayToUtc(
       "2026-08-05",
       [{ start: "09:00", end: "11:00" }],
-      MX,
+      PE,
       30,
       15
     );
@@ -117,7 +117,7 @@ describe("expandWorkingDayToUtc", () => {
         { start: "09:00", end: "13:00" },
         { start: "16:00", end: "18:00" },
       ],
-      MX,
+      PE,
       60,
       0
     );
@@ -133,14 +133,14 @@ describe("expandWorkingDayToUtc", () => {
   });
 
   it("un día sin franjas (cerrado) no genera slots", () => {
-    expect(expandWorkingDayToUtc("2026-08-09", [], MX, 30, 0)).toEqual([]);
+    expect(expandWorkingDayToUtc("2026-08-09", [], PE, 30, 0)).toEqual([]);
   });
 
   it("no emite un slot que no cabe completo en la franja", () => {
     const slots = expandWorkingDayToUtc(
       "2026-08-05",
       [{ start: "09:00", end: "09:45" }],
-      MX,
+      PE,
       30,
       0
     );
@@ -191,7 +191,7 @@ describe("overlaps", () => {
 
 describe("etiquetas para el cliente", () => {
   it("labelInTz muestra la hora local del negocio", () => {
-    const label = labelInTz("2026-08-05T15:00:00.000Z", MX);
+    const label = labelInTz("2026-08-05T15:00:00.000Z", PE);
     expect(label).toContain("09:00");
     expect(label).toContain("5");
     // Mismo instante, otra zona ⇒ otra hora.
@@ -199,21 +199,21 @@ describe("etiquetas para el cliente", () => {
   });
 
   it("partsInTz separa fecha, hora y día", () => {
-    const parts = partsInTz("2026-08-05T15:00:00.000Z", MX);
+    const parts = partsInTz("2026-08-05T15:00:00.000Z", PE);
     expect(parts.time).toBe("09:00");
     expect(parts.date).toContain("2026");
     expect(parts.weekday.length).toBeGreaterThan(0);
   });
 
   it("timeInTz da solo la hora local", () => {
-    expect(timeInTz("2026-08-05T15:00:00.000Z", MX)).toBe("09:00");
+    expect(timeInTz("2026-08-05T15:00:00.000Z", PE)).toBe("09:00");
   });
 
   it("un instante inválido degrada a vacío en vez de lanzar", () => {
-    expect(labelInTz("no-es-fecha", MX)).toBe("");
-    expect(timeInTz("no-es-fecha", MX)).toBe("");
-    expect(dayLabelInTz("no-es-fecha", MX)).toBe("");
-    expect(partsInTz("no-es-fecha", MX).time).toBe("");
+    expect(labelInTz("no-es-fecha", PE)).toBe("");
+    expect(timeInTz("no-es-fecha", PE)).toBe("");
+    expect(dayLabelInTz("no-es-fecha", PE)).toBe("");
+    expect(partsInTz("no-es-fecha", PE).time).toBe("");
   });
 });
 
@@ -222,10 +222,10 @@ describe("etiquetas para el cliente", () => {
  * "10:30, de mañana" a una oferta de HOY y se agendó el día equivocado.
  */
 describe("dayLabelInTz — el día EN PALABRAS", () => {
-  const now = new Date("2026-08-05T15:00:00.000Z"); // miércoles 5, 09:00 en MX
+  const now = new Date("2026-08-05T15:00:00.000Z"); // miércoles 5, 09:00 en PE
 
   it("marca 'hoy' cuando el slot cae en el día en curso del negocio", () => {
-    const label = dayLabelInTz("2026-08-05T20:00:00.000Z", MX, now);
+    const label = dayLabelInTz("2026-08-05T20:00:00.000Z", PE, now);
     expect(label).toMatch(/^hoy /);
     expect(label).toContain("miércoles");
     expect(label).toContain("5");
@@ -233,13 +233,13 @@ describe("dayLabelInTz — el día EN PALABRAS", () => {
   });
 
   it("marca 'mañana' en el día siguiente", () => {
-    const label = dayLabelInTz("2026-08-06T16:00:00.000Z", MX, now);
+    const label = dayLabelInTz("2026-08-06T16:00:00.000Z", PE, now);
     expect(label).toMatch(/^mañana /);
     expect(label).toContain("jueves");
   });
 
   it("un día más lejano va sin prefijo, pero SIEMPRE con el día nombrado", () => {
-    const label = dayLabelInTz("2026-08-10T16:00:00.000Z", MX, now);
+    const label = dayLabelInTz("2026-08-10T16:00:00.000Z", PE, now);
     expect(label).not.toMatch(/^(hoy|mañana) /);
     expect(label).toContain("lunes");
     expect(label).toContain("10");
@@ -248,14 +248,14 @@ describe("dayLabelInTz — el día EN PALABRAS", () => {
   it("'hoy' se decide en la zona del negocio, no en la del servidor", () => {
     // 03:00Z del 6 sigue siendo 5 de agosto en México.
     const instant = "2026-08-06T03:00:00.000Z";
-    expect(dayLabelInTz(instant, MX, now)).toMatch(/^hoy /);
+    expect(dayLabelInTz(instant, PE, now)).toMatch(/^hoy /);
     expect(dayLabelInTz(instant, MADRID, now)).toMatch(/^mañana /);
   });
 });
 
 describe("isValidTimeZone", () => {
   it("acepta zonas IANA reales y rechaza inventadas", () => {
-    expect(isValidTimeZone(MX)).toBe(true);
+    expect(isValidTimeZone(PE)).toBe(true);
     expect(isValidTimeZone("Europe/Madrid")).toBe(true);
     expect(isValidTimeZone("Marte/Olympus")).toBe(false);
   });

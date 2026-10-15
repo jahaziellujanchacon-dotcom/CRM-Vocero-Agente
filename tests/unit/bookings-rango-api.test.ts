@@ -14,7 +14,7 @@ const SETTINGS = {
   bufferMinutes: 0,
   minNoticeHours: 0,
   maxDaysAhead: 14,
-  timezone: "America/Mexico_City",
+  timezone: "America/Lima",
   connector: "enlace-fijo" as const,
   meetingLink: "https://meet.ejemplo.com/sala",
 };
@@ -131,7 +131,9 @@ describe("GET /api/bookings sin parámetros: la respuesta de siempre", () => {
     expect(call("limit")?.args).toEqual([200]);
     expect(call("orderBy")?.args).toEqual(["desc"]);
     const where = call("where")?.args[0] as { organizationId: string; conditions: unknown[] };
-    expect(where).toEqual({ organizationId: "org_a", conditions: [] });
+    // 022, D11: the owner sees everything, so the rep condition is `undefined`
+    // (and `scoped()` ignores it).
+    expect(where).toEqual({ organizationId: "org_a", conditions: [undefined] });
   });
 
   it("cada cita trae la hora en la zona del negocio, como antes", async () => {
@@ -154,7 +156,7 @@ describe("GET /api/bookings?from=&to=: el rango del calendario", () => {
     expect(status).toBe(200);
     expect(body).toMatchObject({
       bookings: [],
-      timezone: "America/Mexico_City",
+      timezone: "America/Lima",
       weeklyHours: SETTINGS.weeklyHours,
       range: { from: "2026-09-21", to: "2026-09-27" },
       truncated: false,

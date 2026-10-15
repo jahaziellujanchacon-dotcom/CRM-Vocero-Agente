@@ -1244,6 +1244,9 @@ async function main() {
   await anuncioDeOrigenChecks();
   await r11BotChecks();
   await centralChecks();
+  await todayChecks();
+  await importChecks();
+  await attentionChecks();
 
   console.log(`\n===== ${checks - failures}/${checks} checks OK, ${failures} fallos =====`);
   process.exit(failures > 0 ? 1 : 0);
@@ -2201,7 +2204,7 @@ async function agendaChecks() {
   );
   ok(
     "…con la etiqueta del día en palabras, en la zona del negocio",
-    ctxConCita.json?.booking?.timezone === "America/Mexico_City" &&
+    ctxConCita.json?.booking?.timezone === "America/Lima" &&
       typeof proxima?.label === "string" &&
       proxima.label.endsWith(`, ${slotsA[0].time}`) &&
       proxima.label.length > `, ${slotsA[0].time}`.length + 8,
@@ -3639,3 +3642,252 @@ async function centralChecks() {
   const quitar = await api("/api/settings/central", { method: "DELETE" });
   ok("quitar la llave borra lo guardado (AC7)", quitar.res.ok && quitar.json?.licencia === null, JSON.stringify(quitar.json));
 }
+
+/**
+ * 029 — «A quién llamar hoy» (tests/e2e/us-hoy.md). El operador del arnés es
+ * el dueño (supervisor): ve la lista de todos.
+ */
+async function todayChecks() {
+  console.log("\n== 029: a quién llamar hoy ==");
+  const RUN = Date.now().toString().slice(-6);
+  const lista = async () => (await api("/api/today")).json;
+  const seccion = (data, id) => data?.sections?.find((s) => s.id === id)?.items ?? [];
+  const esta = (data, id, nombre) => seccion(data, id).some((i) => i.name === nombre);
+
+  let data = await lista();
+  ok("«Hoy» responde con sus tres secciones (AC2)", JSON.stringify(data?.sections?.map((s) => s.id)) === '["overdue","today","first_contact"]', JSON.stringify(data?.sections?.map((s) => s.id)));
+  ok("…en el día del negocio", /^\d{4}-\d{2}-\d{2}$/.test(data?.today ?? ""));
+  ok("el supervisor puede elegir de quién ver la lista (D4)", data?.canFilter === true);
+  const hoy = data.today;
+  const manana = new Date(Date.parse(`${hoy}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
+
+  // Dos leads nuevos por WhatsApp: a nadie se le ha escrito todavía.
+  const nuevos = [`Hoy Nuevo ${RUN}`, `Hoy Respondido ${RUN}`];
+  for (const [i, nombre] of nuevos.entries()) {
+    await api("/api/dev/wa-mock/inbound", {
+      method: "POST",
+      body: JSON.stringify({ phoneNumberId: PN, from: `52155${RUN}${i}`, name: nombre, text: "hola, ¿info?", waMessageId: `wamid.e2e.029.${RUN}.${i}` }),
+    });
+  }
+  await hasta(async () => esta(await lista(), "first_contact", nuevos[1]), 15000);
+  data = await lista();
+  ok("un lead nuevo al que nadie escribió está en «Sin primer contacto» (D3)", esta(data, "first_contact", nuevos[0]) && esta(data, "first_contact", nuevos[1]));
+
+  // Contestarle lo saca de ahí (AC4).
+  const respondido = seccion(data, "first_contact").find((i) => i.name === nuevos[1]);
+  const envio = await api(`/api/conversations/${respondido?.conversationId}/messages`, { method: "POST", body: JSON.stringify({ text: "¡Hola! Te cuento" }) });
+  ok("el operador le contesta", envio.res.ok, JSON.stringify(envio.json));
+  await hasta(async () => !esta(await lista(), "first_contact", nuevos[1]), 10000);
+  ok("…y sale de «Sin primer contacto» (AC4)", !esta(await lista(), "first_contact", nuevos[1]));
+
+  // Fijar el próximo contacto desde el PATCH del lead (AC1).
+  const lead = seccion(await lista(), "first_contact").find((i) => i.name === nuevos[0]);
+  const mala = await api(`/api/pipeline/leads/${lead?.leadId}`, { method: "PATCH", body: JSON.stringify({ followUpOn: "2026-02-30" }) });
+  ok("una fecha inválida se rechaza (AC1, 422)", mala.res.status === 422, `status=${mala.res.status}`);
+  const fija = await api(`/api/pipeline/leads/${lead?.leadId}`, { method: "PATCH", body: JSON.stringify({ followUpOn: hoy, followUpNote: "pide el precio" }) });
+  ok("se fija el próximo contacto para hoy con su nota (AC1)", fija.res.ok && fija.json?.lead?.followUpOn === hoy && fija.json?.lead?.followUpNote === "pide el precio", JSON.stringify(fija.json?.lead));
+  data = await lista();
+  ok("aparece en «Para hoy» y ya no en «Sin primer contacto» (AC2)", esta(data, "today", nuevos[0]) && !esta(data, "first_contact", nuevos[0]));
+  const tablero = (await api("/api/pipeline/board")).json;
+  ok("el tablero trae el próximo contacto para el cajón", tablero?.leads?.find((l) => l.id === lead?.leadId)?.followUpOn === hoy && tablero?.today === hoy);
+
+  // «Hecho» → «Mañana», desde la pantalla, a 360 px (AC6, AC7).
+  const { chromium } = await import("playwright");
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage({ viewport: { width: 360, height: 780 } });
+    const host = new URL(BASE).hostname;
+    await page.context().addCookies(
+      cookie.split("; ").filter(Boolean).map((c) => {
+        const i = c.indexOf("=");
+        return { name: c.slice(0, i), value: c.slice(i + 1), domain: host, path: "/" };
+      })
+    );
+    await page.goto(`${BASE}/today`);
+    const fila = page.getByTestId("today-row").filter({ hasText: nuevos[0] });
+    await fila.waitFor({ timeout: 20000 }).catch(() => {});
+    ok("«Hoy» muestra el lead con su nota en el teléfono", (await fila.textContent().catch(() => ""))?.includes("pide el precio") ?? false);
+    const desborda = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+    ok("«Hoy» a 360 px sin scroll horizontal (AC7)", !desborda);
+    await fila.getByRole("button", { name: "Hecho" }).click();
+    // La fila sale al instante (optimista); se espera a que el servidor guarde.
+    const guardado = page.waitForResponse((r) => r.url().includes(`/api/pipeline/leads/${lead?.leadId}`) && r.request().method() === "PATCH");
+    await page.getByRole("menuitem", { name: "Mañana" }).click();
+    await guardado.catch(() => {});
+    await fila.waitFor({ state: "detached", timeout: 10000 }).catch(() => {});
+    ok("«Hecho» → «Mañana» lo saca de la lista (AC6)", (await fila.count()) === 0);
+  } finally {
+    await browser.close();
+  }
+  const despues = (await api("/api/pipeline/board")).json?.leads?.find((l) => l.id === lead?.leadId);
+  ok("…y deja la fecha en mañana con su nota (AC6)", despues?.followUpOn === manana && despues?.followUpNote === "pide el precio", JSON.stringify(despues));
+  const sinFecha = await api(`/api/pipeline/leads/${lead?.leadId}`, { method: "PATCH", body: JSON.stringify({ followUpOn: null, followUpNote: null }) });
+  ok("«Sin fecha» quita el seguimiento (AC6)", sinFecha.res.ok && sinFecha.json?.lead?.followUpOn === null);
+}
+
+/**
+ * 030 — Importar contactos (tests/e2e/us-importar.md): un CSV por la API, el
+ * `.xlsx` de las pruebas y el diálogo a 360 px.
+ */
+async function importChecks() {
+  console.log("\n== 030: importar contactos ==");
+  const RUN = Date.now().toString().slice(-5);
+  const { readFileSync } = await import("node:fs");
+  const subir = (ruta, archivo, nombre, campos = {}) => {
+    const form = new FormData();
+    form.set("file", new Blob([archivo]), nombre);
+    for (const [k, v] of Object.entries(campos)) form.set(k, v);
+    return fetch(`${BASE}${ruta}`, { method: "POST", headers: { origin: BASE, cookie }, body: form }).then(async (res) => ({ res, json: await res.json().catch(() => null) }));
+  };
+  const csv = `Nombre;Teléfono;Notas\nImport Uno ${RUN};9870${RUN}1;de la feria\nImport Dos ${RUN};9870${RUN}2;\nRepetido ${RUN};+51 9870${RUN}1;\nMalo ${RUN};12;\n`;
+
+  const malo = await subir("/api/contacts/import/preview", "x", "lista.xls");
+  ok("un .xls se rechaza con su motivo (AC1)", malo.res.status === 422 && /\.xlsx o \.csv/.test(malo.json?.error?.message ?? ""), JSON.stringify(malo.json));
+
+  const vista = await subir("/api/contacts/import/preview", csv, "lista.csv", { countryCode: "51" });
+  ok("la vista previa adivina las columnas (AC2)", vista.res.ok && vista.json?.mapping?.name === 0 && vista.json?.mapping?.phone === 1 && vista.json?.mapping?.notes === 2, JSON.stringify(vista.json?.mapping));
+  ok("…y cuenta lo que entra y lo que no (AC2, AC3)", JSON.stringify(vista.json?.counts) === JSON.stringify({ ok: 2, exists: 0, duplicate: 1, invalid_phone: 1 }), JSON.stringify(vista.json?.counts));
+  ok("…sin guardar nada (D6)", !((await api(`/api/contacts?q=${encodeURIComponent(`Import Uno ${RUN}`)}`)).json?.contacts ?? []).length);
+
+  const hecho = await subir("/api/contacts/import", csv, "lista.csv", { countryCode: "51" });
+  ok("importa los nuevos (AC4)", hecho.res.ok && hecho.json?.created === 2, JSON.stringify(hecho.json));
+  ok("…con el detalle de lo que no entró", JSON.stringify(hecho.json?.skipped?.map((s) => s.status)) === '["duplicate","invalid_phone"]');
+  const tablero = (await api("/api/pipeline/board")).json?.leads ?? [];
+  ok("cada importado tiene su lead en el Pipeline (AC4)", [`Import Uno ${RUN}`, `Import Dos ${RUN}`].every((n) => tablero.some((l) => l.contact.name === n)));
+  const otraVez = await subir("/api/contacts/import", csv, "lista.csv", { countryCode: "51" });
+  ok("repetir la importación no crea nada (AC4)", otraVez.json?.created === 0 && otraVez.json?.counts?.ok === 0, JSON.stringify(otraVez.json?.counts));
+
+  const xlsx = await subir("/api/contacts/import/preview", readFileSync("tests/fixtures/contactos.xlsx"), "contactos.xlsx", { countryCode: "51" });
+  ok("lee un .xlsx (AC1)", xlsx.res.ok && xlsx.json?.totalRows === 3 && xlsx.json?.sample?.[0]?.name === "María José Ñahui", JSON.stringify(xlsx.json?.sample?.[0]));
+
+  // El diálogo en el teléfono.
+  const { chromium } = await import("playwright");
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage({ viewport: { width: 360, height: 780 } });
+    const host = new URL(BASE).hostname;
+    await page.context().addCookies(
+      cookie.split("; ").filter(Boolean).map((c) => {
+        const i = c.indexOf("=");
+        return { name: c.slice(0, i), value: c.slice(i + 1), domain: host, path: "/" };
+      })
+    );
+    await page.goto(`${BASE}/contacts`);
+    await page.getByRole("button", { name: "Importar" }).click();
+    await page.getByLabel("Archivo a importar").setInputFiles({
+      name: "telefono.csv",
+      mimeType: "text/csv",
+      buffer: Buffer.from(`Cliente,Celular\nDesde el teléfono ${RUN},9871${RUN}\n`),
+    });
+    const boton = page.getByRole("button", { name: "Importar 1" });
+    await boton.waitFor({ timeout: 15000 }).catch(() => {});
+    ok("el diálogo muestra la vista previa (AC2)", await boton.isVisible().catch(() => false));
+    const desborda = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+    ok("el diálogo a 360 px sin scroll horizontal (AC6)", !desborda);
+    await boton.click();
+    const importado = await page
+      .getByTestId("import-result")
+      .getByText("1 contacto importado")
+      .waitFor({ timeout: 15000 })
+      .then(() => true)
+      .catch(() => false);
+    ok("…e importa desde el teléfono", importado);
+  } finally {
+    await browser.close();
+  }
+}
+
+/**
+ * 031 — La IA responde solo fuera del horario de atención
+ * (tests/e2e/us-ia-fuera-de-horario.md). Con el ai-mock: un horario que cubre
+ * todo el día deja callada a la IA; sin horario (sin atención) contesta.
+ */
+async function attentionChecks() {
+  console.log("\n== 031: la IA solo fuera de horario ==");
+  const RUN = Date.now().toString().slice(-6);
+  const todoElDia = Object.fromEntries(["mon", "tue", "wed", "thu", "fri", "sat", "sun"].map((d) => [d, [{ start: "00:00", end: "24:00" }]]));
+
+  const malo = await api("/api/agent/profile", { method: "PUT", body: JSON.stringify({ attentionHours: { mon: [{ start: "18:00", end: "09:00" }] } }) });
+  ok("un horario al revés se rechaza (AC1, 422)", malo.res.status === 422, `status=${malo.res.status}`);
+  const zonaMala = await api("/api/agent/profile", { method: "PUT", body: JSON.stringify({ attentionTimezone: "Marte/Olympus" }) });
+  ok("una zona inventada se rechaza (AC1, 422)", zonaMala.res.status === 422, `status=${zonaMala.res.status}`);
+
+  const antes = (await api("/api/agent/profile")).json;
+  ok("por defecto la IA responde siempre (AC3)", antes?.profile?.replyMode === "always" && Array.isArray(antes?.profile?.attentionHours?.mon));
+
+  await api("/api/agent/profile", {
+    method: "PUT",
+    body: JSON.stringify({ enabled: true, replyMode: "outside_hours", attentionHours: todoElDia, attentionTimezone: "America/Lima" }),
+  });
+  const ahora = (await api("/api/agent/profile")).json;
+  ok("con atención todo el día, ahora es horario de atención (AC1)", ahora?.attentionNow === true && ahora?.profile?.replyMode === "outside_hours");
+
+  const escribir = (n) =>
+    api("/api/dev/wa-mock/inbound", {
+      method: "POST",
+      body: JSON.stringify({ phoneNumberId: PN, from: `5214631${RUN}${n}`, name: `Horario ${n} ${RUN}`, text: "hola, ¿cuánto cuesta?", waMessageId: `wamid.e2e.031.${RUN}.${n}` }),
+    });
+  const convDe = async (n) => ((await api("/api/conversations")).json?.conversations ?? []).find((c) => c.contact.name === `Horario ${n} ${RUN}`);
+  const respondioIa = async (n) => {
+    const conv = await convDe(n);
+    if (!conv) return false;
+    const msgs = (await api(`/api/conversations/${conv.id}/messages`)).json?.messages ?? [];
+    return msgs.some((m) => m.direction === "out" && m.origin === "ai");
+  };
+
+  await escribir(1);
+  const contestoEnHorario = await hasta(() => respondioIa(1), 15000);
+  ok("dentro del horario la IA no contesta (AC2)", !contestoEnHorario);
+  const conv1 = await convDe(1);
+  ok("…y la conversación no queda traspasada (D3)", Boolean(conv1) && !conv1.handoffAt, JSON.stringify({ handoffAt: conv1?.handoffAt }));
+
+  // AC4 — El Laboratorio ignora el horario: con atención todo el día, una
+  // corrida igual termina con puntaje (la IA contestó a los clientes simulados).
+  const corrida = await api("/api/lab/runs", { method: "POST" });
+  if (corrida.res.ok) {
+    const id = corrida.json?.runId ?? corrida.json?.id;
+    let final = null;
+    await hasta(
+      async () => {
+        const r = (await api(`/api/lab/runs/${id}`)).json;
+        final = r?.run ?? r;
+        return final?.status && final.status !== "running";
+      },
+      180000,
+      1000
+    );
+    ok("en el Laboratorio la IA contesta aunque sea horario de atención (AC4)", final?.status === "done" && final?.score !== null, JSON.stringify({ status: final?.status, score: final?.score }));
+  } else {
+    ok("en el Laboratorio la IA contesta aunque sea horario de atención (AC4)", false, `no se pudo iniciar la corrida: ${corrida.res.status}`);
+  }
+
+  await api("/api/agent/profile", { method: "PUT", body: JSON.stringify({ attentionHours: {} }) });
+  ok("sin horario de atención, ahora no es horario (AC1)", (await api("/api/agent/profile")).json?.attentionNow === false);
+  await escribir(2);
+  ok("fuera del horario la IA contesta (AC2)", await hasta(() => respondioIa(2), 25000));
+
+  // La pantalla en el teléfono.
+  const { chromium } = await import("playwright");
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage({ viewport: { width: 360, height: 780 } });
+    const host = new URL(BASE).hostname;
+    await page.context().addCookies(
+      cookie.split("; ").filter(Boolean).map((c) => {
+        const i = c.indexOf("=");
+        return { name: c.slice(0, i), value: c.slice(i + 1), domain: host, path: "/" };
+      })
+    );
+    await page.goto(`${BASE}/agent`);
+    const estado = await page.getByTestId("attention-now").textContent({ timeout: 15000 }).catch(() => "");
+    ok("Agente dice qué pasa ahora (AC5)", /fuera del horario de atención: contesta la IA/.test(estado ?? ""), String(estado));
+    const desborda = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+    ok("Agente a 360 px sin scroll horizontal (AC5)", !desborda);
+  } finally {
+    await browser.close();
+  }
+
+  // Deja todo como estaba para lo que siga.
+  await api("/api/agent/profile", { method: "PUT", body: JSON.stringify({ enabled: false, replyMode: "always", attentionHours: antes?.profile?.attentionHours ?? {} }) });
+}
+

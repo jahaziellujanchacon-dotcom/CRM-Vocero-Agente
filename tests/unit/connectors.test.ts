@@ -29,7 +29,7 @@ const REQ = {
   topic: "Cita — Ana",
   startUtc: "2026-08-05T15:00:00.000Z",
   durationMinutes: 30,
-  timezone: "America/Mexico_City",
+  timezone: "America/Lima",
 };
 
 describe("el catálogo", () => {
@@ -140,7 +140,7 @@ describe("zoom", () => {
     const body = create?.body as Record<string, unknown>;
     expect(body.type).toBe(2);
     expect(body.topic).toBe("Cita — Ana");
-    expect(body.timezone).toBe("America/Mexico_City");
+    expect(body.timezone).toBe("America/Lima");
     // Zoom rechaza los milisegundos.
     expect(body.start_time).toBe("2026-08-05T15:00:00Z");
   });
@@ -156,7 +156,7 @@ describe("zoom", () => {
     await zoomConnector.updateMeeting(creds, "91234", {
       startUtc: "2026-08-06T16:00:00.000Z",
       durationMinutes: 45,
-      timezone: "America/Mexico_City",
+      timezone: "America/Lima",
     });
     const patch = calls.find((c) => c.method === "PATCH");
     expect(patch?.url).toContain("/meetings/91234");

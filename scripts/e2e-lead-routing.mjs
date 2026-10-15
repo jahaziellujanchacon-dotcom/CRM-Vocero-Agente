@@ -22,7 +22,7 @@ function ok(name, cond, detail = "") {
 /** A logged-in HTTP client with its own cookie jar. */
 function client() {
   let cookie = "";
-  return async function api(path, opts = {}) {
+  const api = async function api(path, opts = {}) {
     const res = await fetch(`${BASE}${path}`, {
       ...opts,
       headers: {
@@ -40,7 +40,35 @@ function client() {
     } catch {}
     return { res, json };
   };
+  api.cookie = () => cookie;
+  return api;
 }
+
+/**
+ * Listens to /api/events as that user and keeps everything received, so a
+ * check can ask later whether a conversation ever reached them (AC8).
+ */
+function listen(api) {
+  const controller = new AbortController();
+  const state = { text: "", ready: null };
+  state.ready = fetch(`${BASE}/api/events`, { headers: { cookie: api.cookie() }, signal: controller.signal }).then(async (res) => {
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    (async () => {
+      try {
+        for (;;) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          state.text += decoder.decode(value, { stream: true });
+        }
+      } catch {}
+    })();
+  });
+  state.stop = () => controller.abort();
+  return state;
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const post = (body) => ({ method: "POST", body: JSON.stringify(body) });
 const put = (body) => ({ method: "PUT", body: JSON.stringify(body) });
@@ -158,6 +186,84 @@ async function main() {
   const c7 = await capture(anaApi, "Lead de Ana");
   board = await boardOf(anaApi);
   ok("Ana's own capture is hers", byContact(board, c7)?.assignee?.id === ana);
+
+  console.log("\n== AC4, AC6–AC8: a WhatsApp lead, its inbox and live events ==");
+  // Needs the app with WA_MOCK_ENABLED=true and META_GRAPH_BASE_URL → wa-mock.
+  await owner("/api/settings/lead-routing", put({ enabled: true }));
+  await owner("/api/settings/lead-routing", put({ userId: beto, receivesLeads: true }));
+  const wa = await owner("/api/settings/whatsapp", put({ wabaId: "WABA-LR", phoneNumberId: "PN-LR-1", token: "tok-lr" }));
+  ok("owner connects WhatsApp (wa-mock)", wa.res.ok, JSON.stringify(wa.json));
+  const betoApi = await signIn("beto@intosales.test");
+  const anaEvents = listen(anaApi);
+  const betoEvents = listen(betoApi);
+  await Promise.all([anaEvents.ready, betoEvents.ready]);
+
+  const phone = `5219990${String(Date.now()).slice(-6)}`;
+  const inbound = await owner(
+    "/api/dev/wa-mock/inbound",
+    post({ phoneNumberId: "PN-LR-1", from: phone, name: "Prospecto WhatsApp", text: "hola, quiero información", waMessageId: `wamid.lr.${Date.now()}` })
+  );
+  ok("a WhatsApp message arrives", inbound.res.ok, JSON.stringify(inbound.json));
+  let conv = null;
+  for (let i = 0; i < 30 && !conv; i++) {
+    await sleep(300);
+    conv = (await owner("/api/conversations")).json?.conversations?.find((c) => c.contact?.name === "Prospecto WhatsApp") ?? null;
+  }
+  ok("the owner sees the new conversation", !!conv);
+  board = await boardOf(owner);
+  const waLead = board.leads.find((l) => l.contact.name === "Prospecto WhatsApp");
+  ok("the webhook lead goes to a rep by turn (AC4)", [ana, beto].includes(waLead?.assignee?.id), JSON.stringify(waLead?.assignee));
+  const [mine, other, mineEvents, otherEvents] =
+    waLead?.assignee?.id === ana ? [anaApi, betoApi, anaEvents, betoEvents] : [betoApi, anaApi, betoEvents, anaEvents];
+
+  ok("the assigned rep sees it in the inbox (AC6)", (await mine("/api/conversations")).json?.conversations?.some((c) => c.id === conv?.id));
+  ok("the other rep does not (AC6)", !(await other("/api/conversations")).json?.conversations?.some((c) => c.id === conv?.id));
+  ok(
+    "the other rep cannot touch the conversation (AC7, 404)",
+    (await other(`/api/conversations/${conv?.id}`, patch({ markRead: true }))).res.status === 404
+  );
+  ok("its messages are 404 for the other rep (AC7)", (await other(`/api/conversations/${conv?.id}/messages`)).res.status === 404);
+
+  // A second message on the same conversation, now that both are listening.
+  await owner(
+    "/api/dev/wa-mock/inbound",
+    post({ phoneNumberId: "PN-LR-1", from: phone, name: "Prospecto WhatsApp", text: "¿siguen ahí?", waMessageId: `wamid.lr.2.${Date.now()}` })
+  );
+  for (let i = 0; i < 30 && !mineEvents.text.includes(conv?.id); i++) await sleep(200);
+  await sleep(1000);
+  ok("the assigned rep gets it live (AC8)", mineEvents.text.includes(conv?.id));
+  ok("the other rep never gets it live (AC8)", !otherEvents.text.includes(conv?.id));
+  anaEvents.stop();
+  betoEvents.stop();
+
+  if (/^(on|1|true|si|sí|yes)$/i.test((process.env.AGENDA ?? "").trim())) {
+    console.log("\n== D11, AC15–AC16: bookings by sales rep (AGENDA=on) ==");
+    const days = Object.fromEntries(
+      ["mon", "tue", "wed", "thu", "fri", "sat", "sun"].map((d) => [d, [{ start: "08:00", end: "20:00" }]])
+    );
+    const cal = await owner("/api/calendar/settings", put({ weeklyHours: days, slotMinutes: 30, minNoticeHours: 0, maxDaysAhead: 7, connector: "enlace-fijo", meetingLink: "https://meet.example/sala" }));
+    ok("owner sets the calendar", cal.res.ok, JSON.stringify(cal.json));
+    const slots = (await owner("/api/calendar/availability")).json?.slots ?? [];
+    ok("there are free slots", slots.length >= 3, `slots=${slots.length}`);
+    const anaContact = await capture(anaApi, "Cita de Ana");
+    const betoContact = await capture(betoApi, "Cita de Beto");
+    const book = (api, contactId, slot) => api("/api/bookings", post({ kind: "session", contactId, startUtc: slot.startUtc }));
+    const anaBooking = await book(owner, anaContact, slots[0]);
+    const betoBooking = await book(owner, betoContact, slots[1]);
+    ok("owner books for both reps' contacts", anaBooking.res.status === 201 && betoBooking.res.status === 201, `${anaBooking.res.status} ${betoBooking.res.status}`);
+    const anaId = anaBooking.json?.booking?.id;
+    const betoId = betoBooking.json?.booking?.id;
+
+    const listIds = async (api) => ((await api("/api/bookings")).json?.bookings ?? []).map((b) => b.id);
+    const anaSees = await listIds(anaApi);
+    ok("Ana sees her contact's booking (AC15)", anaSees.includes(anaId));
+    ok("Ana does not see Beto's booking (AC15)", !anaSees.includes(betoId));
+    const ownerSees = await listIds(owner);
+    ok("the owner sees both (AC15)", ownerSees.includes(anaId) && ownerSees.includes(betoId));
+    ok("Ana cannot cancel Beto's booking (AC16, 404)", (await anaApi(`/api/bookings/${betoId}`, patch({ action: "cancel" }))).res.status === 404);
+    ok("Ana cannot book Beto's contact (AC16, 404)", (await book(anaApi, betoContact, slots[2])).res.status === 404);
+    ok("Ana can cancel her own", (await anaApi(`/api/bookings/${anaId}`, patch({ action: "cancel" }))).res.ok);
+  }
 
   console.log(`\n${failures === 0 ? "All checks passed" : `${failures} check(s) failed`}`);
   process.exit(failures === 0 ? 0 : 1);

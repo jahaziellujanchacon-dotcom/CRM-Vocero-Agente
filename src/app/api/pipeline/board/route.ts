@@ -1,3 +1,5 @@
+import { todayInTz } from "@/lib/time/slots";
+import { businessTimezone } from "@/server/analytics/period";
 import { and, asc, eq } from "drizzle-orm";
 import { withAuth } from "@/lib/api";
 import { getDb, schema } from "@/lib/db";
@@ -62,8 +64,12 @@ export const GET = withAuth(async (session) => {
   // necesita saber cuál es la única sumable, sin adivinarla ni pedirla aparte.
   const { currency } = await getBranding(session.organizationId);
 
+  // 029 — hoy del negocio, para los atajos del próximo contacto.
+  const today = todayInTz(new Date(), await businessTimezone(session.organizationId));
+
   return Response.json({
     currency,
+    today,
     canAssign,
     team,
     stages: stages.map((s) => ({
@@ -80,6 +86,8 @@ export const GET = withAuth(async (session) => {
       amountCents: r.lead.amountCents,
       currency: r.lead.currency,
       priority: r.lead.priority,
+      followUpOn: r.lead.followUpOn,
+      followUpNote: r.lead.followUpNote,
       contact: {
         id: r.contact.id,
         name: r.contact.name,

@@ -27,7 +27,7 @@ import {
  * del negocio contra la del navegador y la cita que cruza la medianoche.
  */
 
-const MX = "America/Mexico_City";
+const PE = "America/Lima";
 const NY = "America/New_York";
 const MADRID = "Europe/Madrid";
 
@@ -120,30 +120,30 @@ describe("etiquetas — lo que dice la barra", () => {
 
 describe("wallClock y tramos — en la zona del NEGOCIO", () => {
   it("la hora de pared sale de la zona, no del proceso", () => {
-    // 15:30 en México son las 21:30Z; en Madrid, las 23:30.
-    expect(wallClock("2026-09-18T21:30:00.000Z", MX)).toEqual({ day: "2026-09-18", minutes: 15 * 60 + 30 });
+    // 15:30 en Perú son las 21:30Z; en Madrid, las 23:30.
+    expect(wallClock("2026-09-18T21:30:00.000Z", PE)).toEqual({ day: "2026-09-18", minutes: 15 * 60 + 30 });
     expect(wallClock("2026-09-18T21:30:00.000Z", MADRID)).toEqual({ day: "2026-09-18", minutes: 23 * 60 + 30 });
-    // A las 02:00Z del 19 en México todavía es el 18.
-    expect(wallClock("2026-09-19T02:00:00.000Z", MX).day).toBe("2026-09-18");
+    // A las 02:00Z del 19 en Perú todavía es el 18.
+    expect(wallClock("2026-09-19T02:00:00.000Z", PE).day).toBe("2026-09-18");
     expect(hhmm(15 * 60 + 5)).toBe("15:05");
   });
 
   it("una cita normal es un tramo de su duración", () => {
-    expect(bookingSegments("2026-09-18T16:00:00.000Z", 30, MX)).toEqual([
+    expect(bookingSegments("2026-09-18T16:00:00.000Z", 30, PE)).toEqual([
       { day: "2026-09-18", startMin: 600, endMin: 630, continuesBefore: false, continuesAfter: false },
     ]);
   });
 
   it("la que cruza la medianoche se parte en dos días", () => {
-    // 23:00 México + 120 min → 01:00 del día siguiente.
-    expect(bookingSegments("2026-09-19T05:00:00.000Z", 120, MX)).toEqual([
+    // 23:00 Perú + 120 min → 01:00 del día siguiente.
+    expect(bookingSegments("2026-09-19T05:00:00.000Z", 120, PE)).toEqual([
       { day: "2026-09-18", startMin: 1380, endMin: 1440, continuesBefore: false, continuesAfter: true },
       { day: "2026-09-19", startMin: 0, endMin: 60, continuesBefore: true, continuesAfter: false },
     ]);
   });
 
   it("la que termina justo a medianoche no deja un tramo vacío al día siguiente", () => {
-    expect(bookingSegments("2026-09-19T05:00:00.000Z", 60, MX)).toEqual([
+    expect(bookingSegments("2026-09-19T05:00:00.000Z", 60, PE)).toEqual([
       { day: "2026-09-18", startMin: 1380, endMin: 1440, continuesBefore: false, continuesAfter: false },
     ]);
   });
@@ -156,13 +156,13 @@ describe("wallClock y tramos — en la zona del NEGOCIO", () => {
   });
 
   it("el desfase se escribe como Google", () => {
-    expect(tzOffsetLabel(MX, new Date("2026-09-18T12:00:00Z"))).toBe("GMT-6");
+    expect(tzOffsetLabel(PE, new Date("2026-09-18T12:00:00Z"))).toBe("GMT-5");
     expect(tzOffsetLabel("Asia/Kolkata", new Date("2026-09-18T12:00:00Z"))).toBe("GMT+5:30");
     expect(tzOffsetLabel("UTC", new Date("2026-09-18T12:00:00Z"))).toBe("GMT");
   });
 
   it("con el reloj real (con milisegundos) el desfase sigue siendo entero", () => {
-    expect(tzOffsetLabel(MX, new Date("2026-09-18T18:15:57.623Z"))).toBe("GMT-6");
+    expect(tzOffsetLabel(PE, new Date("2026-09-18T18:15:57.623Z"))).toBe("GMT-5");
   });
 });
 

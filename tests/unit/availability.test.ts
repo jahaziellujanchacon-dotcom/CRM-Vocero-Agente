@@ -12,10 +12,11 @@ import { daysWithAgenda, spreadByDay } from "@/server/agenda/spread";
 
 /** 015 — El motor: horario − ocupado, con aviso mínimo. Sin BD ni reloj real. */
 
-const MX = "America/Mexico_City";
+const PE = "America/Lima";
 
 function settings(over: Partial<CalendarSettings> = {}): CalendarSettings {
-  return { ...DEFAULT_CALENDAR_SETTINGS, ...over };
+  // Estas pruebas razonan en hora de Perú: la zona va explícita, no por defecto.
+  return { ...DEFAULT_CALENDAR_SETTINGS, timezone: PE, ...over };
 }
 
 describe("buildCandidateSlots", () => {
@@ -56,7 +57,7 @@ describe("buildCandidateSlots", () => {
 });
 
 describe("filterFreeSlots", () => {
-  const tz = MX;
+  const tz = PE;
   const candidates = buildCandidateSlots(
     settings(),
     "2026-08-05",
@@ -161,12 +162,12 @@ describe("spreadByDay", () => {
   const libres = filterFreeSlots(
     buildCandidateSlots(settings(), "2026-08-05", "2026-08-07"),
     [],
-    { now, minNoticeHours: 0, timezone: MX }
+    { now, minNoticeHours: 0, timezone: PE }
   );
 
   it("toma como mucho `perDay` de cada día, en vez de los N más próximos", () => {
     const spread = spreadByDay(libres, {
-      timezone: MX,
+      timezone: PE,
       limit: 12,
       perDay: 3,
       now,
@@ -181,7 +182,7 @@ describe("spreadByDay", () => {
 
   it("el límite corta el total sin romper el reparto", () => {
     const spread = spreadByDay(libres, {
-      timezone: MX,
+      timezone: PE,
       limit: 4,
       perDay: 3,
       now,
@@ -193,7 +194,7 @@ describe("spreadByDay", () => {
 
   it("cada hueco viaja con su día EN PALABRAS y su hora", () => {
     const spread = spreadByDay(libres, {
-      timezone: MX,
+      timezone: PE,
       limit: 3,
       perDay: 1,
       now,
@@ -205,7 +206,7 @@ describe("spreadByDay", () => {
 
   it("sin huecos no inventa días", () => {
     expect(
-      spreadByDay([], { timezone: MX, limit: 12, perDay: 3, now })
+      spreadByDay([], { timezone: PE, limit: 12, perDay: 3, now })
     ).toEqual([]);
   });
 });

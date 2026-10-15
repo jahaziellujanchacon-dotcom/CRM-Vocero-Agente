@@ -17,6 +17,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { AttentionSection, type ReplyMode } from "./attention-hours";
+import type { AttentionHours } from "@/lib/attention";
 
 type Profile = {
   enabled: boolean;
@@ -25,6 +27,10 @@ type Profile = {
   instructions: string | null;
   escalationRules: string | null;
   greeting: string | null;
+  // 031 — cuándo responde la IA y el horario de atención.
+  replyMode: ReplyMode;
+  attentionHours: AttentionHours;
+  attentionTimezone: string;
 };
 
 type KbEntry = {
@@ -39,6 +45,7 @@ export function AgentClient() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [aiConfigured, setAiConfigured] = useState(true);
   const [aiMensaje, setAiMensaje] = useState<string | null>(null);
+  const [attentionNow, setAttentionNow] = useState(false);
   const [entries, setEntries] = useState<KbEntry[]>([]);
   const [kbSize, setKbSize] = useState<{ chars: number; warnAt: number; warning: boolean } | null>(null);
   const [saved, setSaved] = useState(false);
@@ -64,6 +71,7 @@ export function AgentClient() {
       setProfile(p.profile);
       setAiConfigured(p.aiConfigured);
       setAiMensaje(p.aiMensaje ?? null);
+      setAttentionNow(Boolean(p.attentionNow));
     }
     if (kb) setEntries(kb.entries);
     if (size) setKbSize(size);
@@ -171,6 +179,14 @@ export function AgentClient() {
       )}
 
       <div className="grid gap-4 p-4 sm:gap-6 sm:p-6 lg:grid-cols-2">
+        <AttentionSection
+          replyMode={profile.replyMode}
+          hours={profile.attentionHours}
+          timezone={profile.attentionTimezone}
+          attentionNow={attentionNow}
+          agentEnabled={profile.enabled}
+          onSave={saveProfile}
+        />
         <ProfileSection profile={profile} onSave={saveProfile} />
         <KbSection entries={entries} kbSize={kbSize} onChanged={() => void refetch()} />
       </div>

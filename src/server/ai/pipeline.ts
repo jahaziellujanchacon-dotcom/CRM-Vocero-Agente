@@ -1,3 +1,4 @@
+import { silencedByAttentionHours } from "@/server/ai/attention";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { getDb, schema } from "@/lib/db";
 import { newId } from "@/lib/db/ids";
@@ -170,6 +171,10 @@ export async function runAgentTurn(
   // El toggle global aplica a conversaciones reales; el Laboratorio evalúa el
   // comportamiento configurado aunque el agente aún no esté encendido.
   if (!conversation.isTest && !profile.enabled) return;
+  // 031 — «Solo fuera del horario de atención»: dentro del horario la IA calla
+  // y la conversación queda para el equipo, sin marcarla como traspasada. Se
+  // decide AHORA, al pensar el turno (D3). El Laboratorio no mira el horario (D4).
+  if (!conversation.isTest && (await silencedByAttentionHours(organizationId, profile))) return;
 
   const recientes = await db
     .select()

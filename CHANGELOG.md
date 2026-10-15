@@ -316,7 +316,7 @@ reconectar. Respalda la base antes, como en cualquier actualización.
   Todo sale de la base propia: sin gasto publicitario ni conectores, y el
   Laboratorio no cuenta. Las citas del agente, solo con `AGENDA`. Los días se
   cortan en la zona de la agenda; si no hay agenda configurada, en
-  `America/Mexico_City`. ([#70])
+  `America/Lima`. ([#70])
 - **De qué anuncio llegó cada conversación**, sin bandera: marca «Anuncio ·
   titular» y filtro «Anuncios» en la bandeja; tarjeta con el creativo, el
   texto y el enlace en el panel del contacto y en el cajón del trato. La

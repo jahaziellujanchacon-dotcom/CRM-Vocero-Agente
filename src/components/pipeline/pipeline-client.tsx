@@ -36,6 +36,9 @@ export type BoardLead = {
   amountCents: number | null;
   currency: string | null;
   priority: PriorityValue | null;
+  /** 029 — next follow-up day (`AAAA-MM-DD`) and its note. */
+  followUpOn: string | null;
+  followUpNote: string | null;
   /** 022 — the sales rep who owns the lead, or null when unassigned. */
   assignee: TeamMember | null;
 };
@@ -50,6 +53,8 @@ export function PipelineClient() {
   // 022 — only supervisors can reassign; `team` is who they can pick.
   const [canAssign, setCanAssign] = useState(false);
   const [team, setTeam] = useState<TeamMember[]>([]);
+  // 029 — hoy del negocio, para los atajos de «Próximo contacto».
+  const [today, setToday] = useState<string | null>(null);
   const [activeLead, setActiveLead] = useState<BoardLead | null>(null);
   const [managing, setManaging] = useState(false);
   /** Arrastre hacia una etapa perdida, esperando el motivo. */
@@ -79,12 +84,14 @@ export function PipelineClient() {
       stages: StageDto[];
       leads: BoardLead[];
       currency?: string;
+      today?: string;
       canAssign?: boolean;
       team?: TeamMember[];
     };
     if (data.currency) setCurrency(data.currency);
     setCanAssign(data.canAssign ?? false);
     setTeam(data.team ?? []);
+    setToday(data.today ?? null);
     setStages(data.stages);
     setLeads(data.leads);
   }, []);
@@ -92,6 +99,12 @@ export function PipelineClient() {
   useEffect(() => {
     void refetch();
   }, [refetch]);
+
+  // 029 — `/pipeline?lead=<id>` (desde «Hoy») abre ese trato en el cajón.
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("lead");
+    if (id) setAbiertoId(id);
+  }, []);
 
   function onDragStart(event: DragStartEvent) {
     const lead = leads.find((l) => l.id === event.active.id);
@@ -143,6 +156,17 @@ export function PipelineClient() {
       method: "PATCH",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ priority }),
+    }).catch(() => null);
+    void refetch();
+  }
+
+  // 029 — próximo contacto desde el cajón.
+  async function guardarSeguimiento(leadId: string, next: { followUpOn: string | null; followUpNote: string | null }) {
+    setLeads((prev) => prev.map((l) => (l.id === leadId ? { ...l, ...next } : l)));
+    await fetch(`/api/pipeline/leads/${leadId}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(next),
     }).catch(() => null);
     void refetch();
   }
@@ -253,6 +277,8 @@ export function PipelineClient() {
           onMoveStage={(stageId) => moverDesdeCajon(abierto.id, stageId)}
           onAmount={(cents) => void guardarMonto(abierto.id, cents)}
           onPriority={(p) => void guardarPrioridad(abierto.id, p)}
+          today={today}
+          onFollowUp={(next) => void guardarSeguimiento(abierto.id, next)}
           canAssign={canAssign}
           team={team}
           onAssign={(userId) => void guardarVendedor(abierto.id, userId)}

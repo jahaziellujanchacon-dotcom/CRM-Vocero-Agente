@@ -53,6 +53,19 @@ lead necesita un dueño.
   foránea pasa a `NULL`), en vez de desaparecer o quedar con un dueño
   inexistente.
 
+- **D11 — Citas también por vendedor** (ampliación del 2026-10-15, pedida por
+  Juan Carlos: «el vendedor solo ve sus leads»). Con la agenda encendida, un
+  vendedor ve en Citas solo las citas de sus contactos, más los bloqueos del
+  calendario (no tienen contacto y dicen cuándo no hay lugar). Agendar,
+  reprogramar, cancelar o marcar una cita de un contacto ajeno responde 404.
+  Los supervisores ven y tocan todas.
+- **D12 — Resultados no muestra nombres ajenos** (misma ampliación). Los
+  números de ventas, agente y anuncios de Resultados siguen siendo del negocio
+  entero; la sección de higiene, que es una lista de pendientes con nombres
+  («leads en silencio», con su conteo y su dinero, y «ventanas por vencer»),
+  para un vendedor trae solo a sus contactos. Los mensajes fallidos van
+  agrupados por motivo, sin nombres, y no cambian.
+
 ## Comportamiento observable y criterios de aceptación
 
 **Asignación por turno**
@@ -90,6 +103,16 @@ lead necesita un dueño.
 - **AC14** — Las tarjetas del Pipeline muestran las iniciales del vendedor
   asignado, o «Sin asignar».
 
+**Ampliación del 2026-10-15 (D11, D12)**
+
+- **AC15** — Con la agenda encendida, `GET /api/bookings` (con y sin rango)
+  devuelve a un vendedor solo las citas de sus contactos y los bloqueos; a un
+  supervisor, todas.
+- **AC16** — Un vendedor que agenda, reprograma, cancela o marca una cita de un
+  contacto ajeno recibe 404.
+- **AC17** — En la higiene de Resultados, un vendedor solo ve en «leads en
+  silencio» y «ventanas por vencer» a sus contactos.
+
 ## Alcance
 
 **Entra**: asignación en el lead, reparto por turno, visibilidad por vendedor
@@ -103,7 +126,7 @@ sección «Reparto de leads» en Ajustes → Equipo.
 | Tareas del día («a quién llamar hoy») | Es otra función del MVP; se apoya en esta. |
 | Importar contactos desde CSV | Otra función del MVP. |
 | Regla «IA solo fuera de horario» | Otra función del MVP. |
-| Resultados, Citas y Laboratorio filtrados por vendedor | Hoy el vendedor los ve completos, como antes de esta spec. Resultados por vendedor es su propia función. Queda anotado como riesgo: Citas muestra nombres de contactos ajenos. |
+| Laboratorio filtrado por vendedor; números de Resultados por vendedor | El Laboratorio no tiene contactos reales. Resultados por vendedor es su propia función. (Citas y los nombres de Resultados se cerraron en la ampliación del 2026-10-15: D11, D12.) |
 | Filtro por vendedor en el tablero del supervisor | Útil, pero no es parte de la promesa; las iniciales en la tarjeta bastan para empezar. |
 | Repartir por carga, por horario o por habilidad | El turno simple es lo que pide el MVP. |
 | Avisar al vendedor (correo, push) cuando le llega un lead | La instancia no manda correos (Principio II); el lead aparece en su Bandeja en vivo. |

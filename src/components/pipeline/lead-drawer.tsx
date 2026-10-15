@@ -18,6 +18,7 @@ import { FichaPanel } from "@/components/ficha-panel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PriorityPicker } from "./priority-picker";
+import { FollowUpPicker } from "./follow-up-picker";
 import type { BoardLead, TeamMember } from "./pipeline-client";
 
 /**
@@ -36,6 +37,8 @@ export function LeadDrawer({
   onMoveStage,
   onAmount,
   onPriority,
+  today = null,
+  onFollowUp,
   canAssign,
   team,
   onAssign,
@@ -49,6 +52,9 @@ export function LeadDrawer({
   onMoveStage: (stageId: string) => void;
   onAmount: (cents: number | null) => void;
   onPriority: (value: PriorityValue | null) => void;
+  /** 029 — next follow-up; `today` is the business day (from the server). */
+  today?: string | null;
+  onFollowUp?: (next: { followUpOn: string | null; followUpNote: string | null }) => void;
   /** 022 — supervisors pick the owner; a sales rep only sees it. */
   canAssign: boolean;
   team: TeamMember[];
@@ -272,6 +278,14 @@ export function LeadDrawer({
             </p>
             <PriorityPicker value={lead.priority} onChange={onPriority} />
           </section>
+
+          {/* 029 — Cuándo volver a llamar */}
+          {onFollowUp ? (
+            <section className="border-b p-4">
+              <p className="mb-2 kicker">Próximo contacto</p>
+              <FollowUpPicker value={lead.followUpOn} note={lead.followUpNote} today={today} onChange={onFollowUp} />
+            </section>
+          ) : null}
 
           {/* Dónde va */}
           <section className="border-b p-4">

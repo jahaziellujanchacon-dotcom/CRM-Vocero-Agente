@@ -26,10 +26,10 @@ import type { SlotUtc } from "@/lib/time/slots";
  * ignoraba `date` y solo devolvía las tres primeras horas de cada día.
  */
 
-const MX = "America/Mexico_City";
+const PE = "America/Lima";
 const NY = "America/New_York";
-// Lunes 21 sep 2026, 09:00 en CDMX (UTC-6 todo el año desde 2022).
-const NOW = new Date("2026-09-21T15:00:00.000Z");
+// Lunes 21 sep 2026, 09:00 en LIMA (UTC-5 todo el año desde 2022).
+const NOW = new Date("2026-09-21T14:00:00.000Z");
 
 const LUN_A_VIE: CalendarSettings["weeklyHours"] = {
   mon: [{ start: "10:00", end: "19:00" }],
@@ -45,7 +45,7 @@ function ajustes(over: Partial<CalendarSettings> = {}): CalendarSettings {
     weeklyHours: LUN_A_VIE,
     minNoticeHours: 0,
     maxDaysAhead: 7,
-    timezone: MX,
+    timezone: PE,
     ...over,
   };
 }
@@ -93,7 +93,7 @@ describe("«¿mañana en la tarde?» (el fallo de la prueba de punta a punta)", 
   it("el reparto de siempre solo ve la mañana de cada día… y ahora lo dice", () => {
     const { slots, query } = armarHuecos({
       todos: libres(s, "2026-09-21", "2026-09-28"),
-      timezone: MX,
+      timezone: PE,
       now: NOW,
       maxDaysAhead: 7,
       limit: 12,
@@ -132,7 +132,7 @@ describe("«¿mañana en la tarde?» (el fallo de la prueba de punta a punta)", 
   it("con date, limit/perDay/days no recortan el día", () => {
     const { slots } = armarHuecos({
       todos: libres(s, "2026-09-25", "2026-09-25"),
-      timezone: MX,
+      timezone: PE,
       now: NOW,
       maxDaysAhead: 7,
       limit: 1,
@@ -147,7 +147,7 @@ describe("«¿mañana en la tarde?» (el fallo de la prueba de punta a punta)", 
   it("no mezcla otros días aunque vengan en la lista", () => {
     const { slots } = armarHuecos({
       todos: libres(s, "2026-09-21", "2026-09-28"),
-      timezone: MX,
+      timezone: PE,
       now: NOW,
       maxDaysAhead: 7,
       limit: 12,
@@ -213,7 +213,7 @@ describe("por qué un día no tiene horas", () => {
   });
 
   it("lleno también cuando hoy ya cerró", () => {
-    const tarde = new Date("2026-09-22T01:30:00.000Z"); // lun 21, 19:30 CDMX
+    const tarde = new Date("2026-09-22T01:30:00.000Z"); // lun 21, 19:30 LIMA
     expect(porFecha(s, "2026-09-21", tarde).query.status).toBe("full");
   });
 
@@ -239,7 +239,7 @@ describe("por qué un día no tiene horas", () => {
 
 describe("la fecha es la del negocio, no la del servidor", () => {
   const s = ajustes();
-  // Lunes 21, 22:30 en CDMX; en UTC ya es martes 22.
+  // Lunes 21, 22:30 en LIMA; en UTC ya es martes 22.
   const noche = new Date("2026-09-22T04:30:00.000Z");
 
   function consultas() {
@@ -260,7 +260,7 @@ describe("la fecha es la del negocio, no la del servidor", () => {
     expect(r.hoy).toBe("full"); // el lunes sigue siendo hoy: no «past»
     expect(r.manana).toBe("available");
     expect(r.dia).toMatch(/^mañana martes/);
-    expect(r.primero).toBe("2026-09-22T16:00:00.000Z"); // 10:00 CDMX
+    expect(r.primero).toBe("2026-09-22T16:00:00.000Z"); // 10:00 LIMA
     expect(r.horizonte).toBe("2026-09-28");
   });
 
@@ -336,7 +336,7 @@ describe("sin date: el reparto de siempre, con cobertura", () => {
   /** La ruta ANTES de R10: repartir y luego recortar a `days`. */
   function antes(limit: number, perDay: number, days: number): string[] {
     const hoy = Date.parse("2026-09-21T00:00:00Z");
-    return spreadByDay(todos, { timezone: MX, limit, perDay, now: NOW })
+    return spreadByDay(todos, { timezone: PE, limit, perDay, now: NOW })
       .filter((x) => {
         const diff = (Date.parse(`${x.dayIso}T00:00:00Z`) - hoy) / 86_400_000;
         return diff >= 0 && diff < days;
@@ -354,7 +354,7 @@ describe("sin date: el reparto de siempre, con cobertura", () => {
   ])("limit=%i perDay=%i days=%i da los mismos huecos que antes", (limit, perDay, days) => {
     const { slots } = armarHuecos({
       todos,
-      timezone: MX,
+      timezone: PE,
       now: NOW,
       maxDaysAhead: 14,
       limit,
@@ -368,7 +368,7 @@ describe("sin date: el reparto de siempre, con cobertura", () => {
     // 2 días hábiles × 3 = 6 < 12: lo que falta en la ventana SÍ está cerrado.
     const { slots, query } = armarHuecos({
       todos,
-      timezone: MX,
+      timezone: PE,
       now: NOW,
       maxDaysAhead: 14,
       limit: 12,
@@ -382,7 +382,7 @@ describe("sin date: el reparto de siempre, con cobertura", () => {
   it("una ventana más larga que el horizonte se queda en el horizonte", () => {
     const { query } = armarHuecos({
       todos: libres(ajustes(), "2026-09-21", "2026-09-28"),
-      timezone: MX,
+      timezone: PE,
       now: NOW,
       maxDaysAhead: 7,
       limit: 48,
@@ -396,7 +396,7 @@ describe("sin date: el reparto de siempre, con cobertura", () => {
   it("sin huecos no inventa días y dice que revisó todo", () => {
     const { slots, query } = armarHuecos({
       todos: [],
-      timezone: MX,
+      timezone: PE,
       now: NOW,
       maxDaysAhead: 7,
       limit: 12,

@@ -1,6 +1,7 @@
 import {
   boolean,
   check,
+  date,
   index,
   integer,
   jsonb,
@@ -251,11 +252,20 @@ export const lead = pgTable(
       onDelete: "set null",
     }),
     assignedAt: timestamp("assigned_at"),
+    /**
+     * 029 — Day of the next follow-up, in the business calendar (no time, no
+     * zone: «call on Thursday»). NULL = none set. Drives «Hoy».
+     */
+    followUpOn: date("follow_up_on", { mode: "string" }),
+    /** 029 — Short note for that follow-up (max 200, checked by the route). */
+    followUpNote: text("follow_up_note"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (t) => [
     uniqueIndex("lead_contact_uq").on(t.contactId),
+    // 029 — «Hoy» filters by organization and follow-up day.
+    index("lead_org_follow_up_idx").on(t.organizationId, t.followUpOn),
     index("lead_org_stage_idx").on(t.organizationId, t.stageId, t.position),
     // 022 — every "only my leads" query filters by these two columns.
     index("lead_org_assignee_idx").on(t.organizationId, t.assignedUserId),
@@ -697,10 +707,22 @@ export const agentProfile = pgTable(
     instructions: text("instructions"),
     escalationRules: text("escalation_rules"),
     greeting: text("greeting"),
+    /**
+     * 031 — When the agent replies: `always` (default) or only outside the
+     * team's attention hours (`outside_hours`).
+     */
+    replyMode: text("reply_mode", { enum: ["always", "outside_hours"] }).notNull().default("always"),
+    /** 031 — `{"mon":[{"start":"09:00","end":"18:00"}]}`, wall clock. NULL = default hours. */
+    attentionHours: jsonb("attention_hours"),
+    /** 031 — IANA zone of those hours. NULL = the business zone. */
+    attentionTimezone: text("attention_timezone"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
-  (t) => [uniqueIndex("agent_profile_org_uq").on(t.organizationId)]
+  (t) => [
+    uniqueIndex("agent_profile_org_uq").on(t.organizationId),
+    check("agent_profile_reply_mode_check", sql`${t.replyMode} in ('always', 'outside_hours')`),
+  ]
 );
 
 export const kbEntry = pgTable(
@@ -796,7 +818,7 @@ export const calendarSettings = pgTable(
     bufferMinutes: integer("buffer_minutes").notNull().default(0),
     minNoticeHours: integer("min_notice_hours").notNull().default(2),
     maxDaysAhead: integer("max_days_ahead").notNull().default(7),
-    timezone: text("timezone").notNull().default("America/Mexico_City"),
+    timezone: text("timezone").notNull().default("America/Lima"),
     /**
      * Cómo se entrega la reunión. `enlace-fijo` no habla con nadie: es el
      * default y la razón de que encender la agenda no exija terceros.

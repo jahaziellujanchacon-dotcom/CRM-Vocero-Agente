@@ -15,7 +15,7 @@ import * as schema from "./schema";
  * la zona de la SESIÓN, así que en un Postgres que no corra en UTC escribe
  * hora LOCAL y ese mismo valor se vuelve a leer como si fuera UTC.
  *
- * Síntoma real (Postgres en UTC-6): un saliente mostraba 08:59 en la burbuja
+ * Síntoma real (Postgres en UTC-5): un saliente mostraba 08:59 en la burbuja
  * del hilo (`message.created_at`, escrito por `now()`) y 14:59 en la lista
  * (`conversation.last_message_at`, escrito desde JS). Fijar la zona de sesión
  * en UTC alinea `now()` con Drizzle y con eso TODAS las columnas

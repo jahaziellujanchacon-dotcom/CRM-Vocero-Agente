@@ -10,8 +10,7 @@ import {
   Search,
   Send,
   UserPlus,
-  Users,
-} from "lucide-react";
+  Users, FileUp } from "lucide-react";
 import type { ContactDto } from "@/lib/types";
 import { formatPhone } from "@/lib/utils";
 import { ContactAvatar } from "@/components/avatar";
@@ -24,6 +23,7 @@ import { SOURCE_LABELS } from "@/server/contact-source";
 import { priorityRank } from "@/server/leads/priority";
 import { PriorityBadge } from "@/components/pipeline/priority-picker";
 import { NewContactDialog } from "./new-contact-dialog";
+import { ImportDialog } from "./import-dialog";
 import { StartConversation } from "./start-conversation";
 
 export function ContactsClient() {
@@ -35,6 +35,7 @@ export function ContactsClient() {
   const [showArchived, setShowArchived] = useState(false);
   const [editing, setEditing] = useState<ContactDto | null>(null);
   const [creando, setCreando] = useState(false);
+  const [importando, setImportando] = useState(false);
   const [escribiendo, setEscribiendo] = useState<ContactDto | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -94,6 +95,10 @@ export function ContactsClient() {
           <Button size="sm" onClick={() => setCreando(true)}>
             <UserPlus className="mr-1.5 h-4 w-4" strokeWidth={1.8} />
             Nuevo contacto
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => setImportando(true)}>
+            <FileUp className="mr-1.5 h-4 w-4" strokeWidth={1.8} />
+            Importar
           </Button>
         </div>
         <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:gap-3">
@@ -279,6 +284,7 @@ export function ContactsClient() {
         </div>
       )}
 
+      {importando && <ImportDialog onClose={() => setImportando(false)} onImported={() => void refetch()} />}
       {creando && (
         <NewContactDialog
           onClose={() => setCreando(false)}

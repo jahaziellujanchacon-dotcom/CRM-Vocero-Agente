@@ -8,6 +8,7 @@ import { moveLeadToStage } from "@/server/leads/stage-history";
 import { getBranding } from "@/server/branding";
 import { isSupervisor } from "@/lib/auth/roles";
 import { canSeeLead, getLeadScope } from "@/server/leads/scope";
+import { isIsoDay } from "@/lib/today";
 
 export const dynamic = "force-dynamic";
 
@@ -52,6 +53,16 @@ const patchSchema = z.object({
    * supervisors can do it, and it does not move the rotation (D7).
    */
   assignedUserId: z.string().min(1).nullable().optional(),
+  /**
+   * 029 — Day of the next follow-up (`AAAA-MM-DD`, business calendar) and its
+   * note. `null` clears; absent leaves them as they were.
+   */
+  followUpOn: z
+    .string()
+    .refine(isIsoDay, "Fecha inválida: usa AAAA-MM-DD")
+    .nullable()
+    .optional(),
+  followUpNote: z.string().trim().max(200).nullable().optional(),
 });
 
 /** 022 — Is `userId` part of this organization's team (any role)? */
@@ -128,6 +139,10 @@ export const PATCH = withAuth(async (session, req: Request, ctx: Params) => {
     extra.assignedUserId = assignedUserId;
     extra.assignedAt = assignedUserId ? new Date() : null;
   }
+
+  // 029 — Next follow-up. An empty note is no note.
+  if (body.data.followUpOn !== undefined) extra.followUpOn = body.data.followUpOn;
+  if (body.data.followUpNote !== undefined) extra.followUpNote = body.data.followUpNote || null;
 
   if (body.data.priority !== undefined) {
     extra.priority = body.data.priority;

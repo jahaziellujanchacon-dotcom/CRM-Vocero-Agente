@@ -5,7 +5,7 @@
 - [x] T001 Columnas `assigned_user_id` y `assigned_at` en `lead`, tablas `lead_routing` y `lead_routing_member` en `schema.ts`, prefijo `lrm_`
 - [x] T002 `pnpm db:generate` → `0019_lead_assignment`
 - [x] T003 Migrar una base vacía
-- [ ] T003b Migrar una base con datos en `0016` (la tuya local, al revisar)
+- [x] T003b Migrar una base con datos (2026-10-14: la base local de Juan Carlos, al reparar la `0019`; ver spec 028, data-model)
 
 ## Servidor
 
@@ -37,4 +37,15 @@
 - Gate técnico: `pnpm typecheck`, `pnpm lint`, `pnpm test` (1006) y `pnpm build`.
 - Migración `0017` aplicada sobre una base vacía aparte.
 - `scripts/e2e-lead-routing.mjs` contra esa base: 30 comprobaciones en verde.
-- Pendiente a mano: Bandeja y SSE con WhatsApp de pruebas (ver el guion).
+- Bandeja y SSE: automatizados el 2026-10-15 (T020).
+- [x] T020 Bandeja y SSE automatizados en `scripts/e2e-lead-routing.mjs` (2026-10-15): un lead de WhatsApp (wa-mock) entra por turno, el vendedor asignado lo ve en la Bandeja y en vivo, el otro no lo ve, no lo recibe por SSE y recibe 404 al tocarlo (AC4, AC6–AC8)
+
+## Verificación (2026-10-15)
+
+- `scripts/e2e-lead-routing.mjs` contra una base vacía con los mocks: todo en verde, incluida la Bandeja y el SSE que antes eran a mano.
+
+## Ampliación del 2026-10-15 (D11, D12)
+
+- [x] T021 Citas: listas filtradas para el vendedor (con bloqueos), y agendar, reprogramar, cancelar y marcar con 404 si el contacto es ajeno (AC15, AC16)
+- [x] T022 Higiene de Resultados: «leads en silencio» y «ventanas por vencer» solo con sus contactos (AC17)
+- [x] T023 Pruebas contra PostgreSQL y E2E con `AGENDA=on` en `scripts/e2e-lead-routing.mjs`

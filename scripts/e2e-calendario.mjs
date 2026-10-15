@@ -25,7 +25,7 @@ import postgres from "postgres";
 
 const BASE = process.env.APP_BASE_URL ?? "http://localhost:3000";
 const AGENDA = /^(on|1|true|si|sí|yes)$/i.test((process.env.AGENDA ?? "").trim());
-const TZ_NEGOCIO = "America/Mexico_City";
+const TZ_NEGOCIO = "America/Lima";
 const TZ_NAVEGADOR = "Asia/Tokyo";
 const PN = "PN-E2E-1";
 const HOUR_PX = 48; // el alto de una hora en la rejilla (time-grid.tsx)

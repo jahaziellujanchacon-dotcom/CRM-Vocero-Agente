@@ -30,7 +30,7 @@ const SETTINGS: CalendarSettings = {
   bufferMinutes: 0,
   minNoticeHours: 0,
   maxDaysAhead: 7,
-  timezone: "America/Mexico_City",
+  timezone: "America/Lima",
   connector: "enlace-fijo",
   meetingLink: null,
 };

@@ -33,7 +33,7 @@ const context = await browser.newContext({
   viewport: VIEWPORT,
   deviceScaleFactor: 1,
   locale: "es-MX",
-  timezoneId: "America/Mexico_City",
+  timezoneId: "America/Lima",
   colorScheme: "light",
   reducedMotion: "reduce",
 });

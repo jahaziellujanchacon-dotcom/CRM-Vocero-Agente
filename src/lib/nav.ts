@@ -8,8 +8,7 @@ import {
   Settings,
   Sparkles,
   Users,
-  type LucideIcon,
-} from "lucide-react";
+  type LucideIcon, PhoneCall } from "lucide-react";
 import { canConfigure } from "@/lib/auth/roles";
 
 /**
@@ -57,6 +56,8 @@ export function appNavGroups({
   role?: string | null;
 }): NavGroup[] {
   const trabajo: NavItem[] = [
+    // 029 — lo primero que abre un vendedor al empezar el día.
+    { href: "/today", label: "Hoy", icon: PhoneCall },
     { href: "/inbox", label: "Bandeja", icon: Inbox, badge: true },
     { href: "/pipeline", label: "Pipeline", icon: Kanban },
     { href: "/contacts", label: "Contactos", icon: Users },

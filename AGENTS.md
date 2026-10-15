@@ -42,7 +42,7 @@ pnpm dev                                                   # http://localhost:30
 
 | Comando | Qué hace |
 |---|---|
-| `pnpm typecheck` · `pnpm lint` · `pnpm test` · `pnpm build` | Los cuatro gates del CI (`pnpm test` es `vitest run`; `pnpm test:watch` para iterar) |
+| `pnpm typecheck` · `pnpm lint` · `pnpm test` · `pnpm build` | Los cuatro gates del CI (`pnpm test` es `vitest run`; `pnpm test:watch` para iterar). Con `TEST_DATABASE_URL` (p. ej. `postgresql://postgres:<clave>@localhost:5433/postgres`) corren además las pruebas de `tests/integration/` contra PostgreSQL: cada archivo crea y borra su propia base |
 | `pnpm test:e2e` | `scripts/e2e-selftest.mjs` contra la app viva con mocks. `test:e2e:calendario` y `test:e2e:resultados` conducen sus guiones; el resto de `scripts/e2e-*.mjs` se corre con `node --env-file=.env scripts/<nombre>.mjs` |
 | `pnpm db:generate` | Genera una migración nueva en `drizzle/` a partir de `src/lib/db/schema.ts` |
 | `pnpm seed:demo` | Carga la academia de ejemplo (también desde la UI al primer arranque) |

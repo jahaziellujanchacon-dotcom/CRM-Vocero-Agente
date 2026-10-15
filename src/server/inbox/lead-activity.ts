@@ -58,6 +58,11 @@ export async function createLeadForContact(input: {
    * prospect, D6). Absent: the lead goes to the next rep in the rotation.
    */
   assignedUserId?: string;
+  /**
+   * 030 — Leave the new lead unassigned instead of taking a turn (a
+   * supervisor importing «sin asignar»). Ignored with `assignedUserId`.
+   */
+  skipRotation?: boolean;
 }): Promise<{ id: string; stageId: string } | null> {
   const db = getDb();
 
@@ -131,7 +136,7 @@ export async function createLeadForContact(input: {
         .update(schema.lead)
         .set({ assignedUserId: input.assignedUserId, assignedAt: now, updatedAt: now })
         .where(eq(schema.lead.id, creado.id));
-    } else {
+    } else if (!input.skipRotation) {
       await assignLeadByRotation(input.organizationId, creado.id);
     }
   } catch (err) {
