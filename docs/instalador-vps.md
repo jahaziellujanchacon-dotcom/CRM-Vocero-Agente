@@ -33,7 +33,8 @@ curl -fsSL https://raw.githubusercontent.com/jcarlosverase/into-sales/main/deplo
 |---|---|
 | `--dominio` | Dominio del CRM (obligatorio) |
 | `--nombre` | Nombre de la instancia, para tener varias en el mismo VPS. Por defecto: `principal` |
-| `--central` | Enciende el latido al central. Sin ella, queda apagado |
+| `--central` | Enciende el latido al central. Al actualizar no hace falta repetirla: se conserva la que ya estaba |
+| `--sin-central` | Apaga el latido al central |
 | `--rama` | Rama del repositorio. Por defecto: `main` |
 
 Al terminar, el instalador dice qué sigue:
@@ -66,7 +67,21 @@ Cada app es su propio proyecto de compose (`into-sales-<nombre>`,
 ## Actualizar
 
 Vuelve a correr el mismo comando: trae el código, construye y arranca, y las
-migraciones corren al arrancar. Los secretos nunca se pisan.
+migraciones corren al arrancar. Los secretos nunca se pisan, y lo que no
+repitas (`--central`) se conserva.
+
+Más rápido, sin reinstalar paquetes (cambia `principal` por el `--nombre` de
+la instancia):
+
+```bash
+cd /opt/into-sales/principal && sudo git -C src pull -q && C="sudo docker compose -p into-sales-principal --env-file .env -f src/docker-compose.yml -f src/deploy/docker-compose.vps.yml" && $C build --build-arg SOURCE_COMMIT=$(git -C src rev-parse HEAD) app && $C up -d
+```
+
+Todos los CRMs del VPS de una vez:
+
+```bash
+for d in /opt/into-sales/*/; do n=$(basename $d); (cd $d && sudo git -C src pull -q && C="sudo docker compose -p into-sales-$n --env-file .env -f src/docker-compose.yml -f src/deploy/docker-compose.vps.yml" && $C build --build-arg SOURCE_COMMIT=$(git -C src rev-parse HEAD) app && $C up -d); done
+```
 
 ## Del día a día
 

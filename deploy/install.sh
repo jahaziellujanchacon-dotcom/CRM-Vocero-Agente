@@ -25,6 +25,9 @@ DOMINIO=""
 NOMBRE=principal
 RAMA=main
 CENTRAL=""
+# Solo se toca INTO_CENTRAL_URL si se pasa --central o --sin-central: volver a
+# correr el instalador sin ellas conserva lo que ya estaba.
+CENTRAL_SET=0
 BASE=/opt
 HTTP_PORT=80
 HTTPS_PORT=443
@@ -41,7 +44,9 @@ Uso: sudo bash install.sh --dominio crm.cliente.com [opciones]
   --nombre N      Nombre de la instancia, para tener varias en el mismo VPS
                   (minúsculas, números y guiones). Por defecto: principal.
   --central URL   Enciende el latido al servicio central de into
-                  (por ejemplo https://api.into.center). Sin él, apagado.
+                  (por ejemplo https://api.into.center). Al actualizar no
+                  hace falta repetirlo: se conserva el que ya estaba.
+  --sin-central   Apaga el latido al central.
   --rama R        Rama del repositorio. Por defecto: main.
   --ayuda         Esta ayuda.
 
@@ -67,7 +72,10 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --dominio) DOMINIO="${2:-}"; shift 2 ;;
     --nombre) NOMBRE="${2:-}"; shift 2 ;;
-    --central) CENTRAL="${2:-}"; shift 2 ;;
+    --central)
+      [ -n "${2:-}" ] || die "--central necesita la URL (por ejemplo --central https://api.into.center); para apagarlo, --sin-central"
+      CENTRAL="$2"; CENTRAL_SET=1; shift 2 ;;
+    --sin-central) CENTRAL=""; CENTRAL_SET=1; shift ;;
     --rama) RAMA="${2:-}"; shift 2 ;;
     --base) BASE="${2:-}"; shift 2 ;;
     --puertos)
@@ -272,7 +280,8 @@ escribir_env() {
   env_secret META_WEBHOOK_VERIFY_TOKEN "$(openssl rand -hex 32)"
   env_set APP_BASE_URL "$URL"
   env_set DOMAIN "$DOMINIO"
-  env_set INTO_CENTRAL_URL "$CENTRAL"
+  [ "$CENTRAL_SET" = 0 ] || env_set INTO_CENTRAL_URL "$CENTRAL"
+  CENTRAL=$(grep "^INTO_CENTRAL_URL=" "$DIR/.env" | cut -d= -f2- || true)
   env_set EDGE_ALIAS "$ALIAS"
   env_set APP_IMAGE "$APP:$NOMBRE"
 }

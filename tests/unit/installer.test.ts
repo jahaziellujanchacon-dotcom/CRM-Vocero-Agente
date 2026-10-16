@@ -13,6 +13,7 @@ describe("deploy/install.sh (spec 1001)", () => {
     expect(r.status).toBe(0);
     expect(r.stdout).toContain("--dominio");
     expect(r.stdout).toContain("--central");
+    expect(r.stdout).toContain("--sin-central");
   });
 
   it.each([
@@ -21,6 +22,7 @@ describe("deploy/install.sh (spec 1001)", () => {
     [["--dominio", "crm.cliente.com;rm"], "dominio inválido"],
     [["--dominio", "crm.cliente.com", "--nombre", "Cliente Uno"], "nombre inválido"],
     [["--dominio", "crm.cliente.com", "--central", "api.into.center"], "URL del central inválida"],
+    [["--dominio", "crm.cliente.com", "--central"], "--central necesita la URL"],
     [["--dominio", "crm.cliente.com", "--puertos", "80"], "puertos inválidos"],
     [["--dominio", "crm.cliente.com", "--origen", "/no/existe"], "no existe la carpeta"],
     [["--quien-sabe"], "opción desconocida"],

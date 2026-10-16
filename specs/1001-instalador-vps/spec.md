@@ -45,13 +45,16 @@ junto al servicio central de into.
 - **AC4 — Volver a correrlo actualiza.** Trae el código de la rama, vuelve a
   construir y arrancar, y las migraciones corren al arrancar, como siempre.
   Los secretos del `.env` se generan una sola vez y nunca se pisan. El
-  dominio y el central se reescriben, así que cambiar `--dominio` o
-  `--central` basta con volver a correrlo.
+  dominio se reescribe, así que cambiarlo basta con volver a correrlo. El
+  central solo cambia si se pasa `--central` o `--sin-central`: volver a
+  correr el instalador sin ellas conserva el que ya estaba (cambio del
+  2026-10-16, pedido de Juan Carlos).
 - **AC5 — Secretos.** El `.env` queda con permisos 600 y el instalador no
   imprime ningún secreto. Con un repositorio privado, `GITHUB_TOKEN` se usa
   solo para clonar y no se guarda en ningún archivo, tampoco en `.git/config`.
 - **AC6 — El central es opcional.** `--central https://api.into.center`
-  enciende el latido (028). Sin esa opción, queda apagado.
+  enciende el latido (028) y `--sin-central` lo apaga. En la primera
+  instalación, sin ninguna de las dos, queda apagado.
 - **AC7 — DNS y puertos.** Si el dominio no apunta al servidor, el
   instalador avisa sin detenerse: Caddy saca el certificado solo cuando el
   DNS llega. Si los puertos 80 y 443 ya los usa otro programa (Coolify,
