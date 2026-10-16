@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
  * impide que el navegador reinterprete el tipo. Cuesta dos cabeceras y quita
  * de la mesa toda esa clase de problema.
  */
-function cabeceras(mime: string, cacheable: boolean): HeadersInit {
+function headers(mime: string, cacheable: boolean): HeadersInit {
   return {
     "content-type": mime,
     "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'",
@@ -43,7 +43,7 @@ export async function GET(req: Request) {
     try {
       const buf = await readMediaFile(ctx.organizationId, FAVICON_ASSET);
       return new Response(new Uint8Array(buf), {
-        headers: cabeceras(branding.favicon.mime, cacheable),
+        headers: headers(branding.favicon.mime, cacheable),
       });
     } catch {
       // El archivo se perdió (volumen sin montar, restauración a medias). Se
@@ -59,6 +59,6 @@ export async function GET(req: Request) {
   }
 
   return new Response(generatedFaviconSvg(branding), {
-    headers: cabeceras("image/svg+xml", cacheable),
+    headers: headers("image/svg+xml", cacheable),
   });
 }

@@ -2,9 +2,9 @@ import { z } from "zod";
 import { apiError, parseBody, withAuth } from "@/lib/api";
 import { canConfigure } from "@/lib/auth/roles";
 import { LICENSE_KEY_PATTERN } from "@/server/central/client";
-import { centralDisabledResponse, leerConfigCentral } from "@/server/central/flag";
-import { latirAhora } from "@/server/central/heartbeat";
-import { getLicenciaPublica, guardarLlave, quitarLlave } from "@/server/central/license";
+import { centralDisabledResponse, readConfigCentral } from "@/server/central/flag";
+import { beatNow } from "@/server/central/heartbeat";
+import { getPublicLicense, saveKey, removeKey } from "@/server/central/license";
 
 export const dynamic = "force-dynamic";
 
@@ -14,41 +14,41 @@ export const dynamic = "force-dynamic";
  * nunca vuelve a salir: la respuesta lleva sus últimos 4.
  */
 
-async function vista(organizationId: string) {
-  const config = leerConfigCentral();
+async function view(organizationId: string) {
+  const config = readConfigCentral();
   return {
-    central: config.activo ? config.host : null,
-    licencia: await getLicenciaPublica(organizationId),
+    central: config.active ? config.host : null,
+    license: await getPublicLicense(organizationId),
   };
 }
 
 const putSchema = z.object({
-  llave: z
+  key: z
     .string()
     .trim()
     .regex(LICENSE_KEY_PATTERN, "La llave empieza con into_live_ y sigue con 32 letras y números"),
 });
 
 export const GET = withAuth(async (session) => {
-  if (!leerConfigCentral().activo) return centralDisabledResponse();
+  if (!readConfigCentral().active) return centralDisabledResponse();
   if (!canConfigure(session.role)) return apiError(403, "forbidden", "Solo quien configura el negocio");
-  return Response.json(await vista(session.organizationId));
+  return Response.json(await view(session.organizationId));
 });
 
 export const PUT = withAuth(async (session, req: Request) => {
-  if (!leerConfigCentral().activo) return centralDisabledResponse();
+  if (!readConfigCentral().active) return centralDisabledResponse();
   if (!canConfigure(session.role)) return apiError(403, "forbidden", "Solo quien configura el negocio");
   const body = await parseBody(req, putSchema);
   if (!body.ok) return body.response;
-  await guardarLlave(session.organizationId, body.data.llave);
+  await saveKey(session.organizationId, body.data.key);
   // AC3: late en ese momento; con el central caído responde igual (10 s de límite).
-  await latirAhora(session.organizationId);
-  return Response.json(await vista(session.organizationId));
+  await beatNow(session.organizationId);
+  return Response.json(await view(session.organizationId));
 });
 
 export const DELETE = withAuth(async (session) => {
-  if (!leerConfigCentral().activo) return centralDisabledResponse();
+  if (!readConfigCentral().active) return centralDisabledResponse();
   if (!canConfigure(session.role)) return apiError(403, "forbidden", "Solo quien configura el negocio");
-  await quitarLlave(session.organizationId);
-  return Response.json(await vista(session.organizationId));
+  await removeKey(session.organizationId);
+  return Response.json(await view(session.organizationId));
 });

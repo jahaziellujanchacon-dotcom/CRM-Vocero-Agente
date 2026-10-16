@@ -28,35 +28,35 @@ describe("barra lateral agrupada", () => {
   });
 
   it("AGENDA añade Citas al final de Trabajo", () => {
-    const [trabajo] = appNavGroups({ agenda: true, role: "member" });
-    expect(trabajo!.items.map((i) => i.label)).toEqual([
+    const [work] = appNavGroups({ agenda: true, role: "member" });
+    expect(work!.items.map((i) => i.label)).toEqual([
       "Hoy",
       "Bandeja",
       "Pipeline",
       "Contactos",
       "Citas",
     ]);
-    expect(trabajo!.items.at(-1)!.href).toBe("/bookings");
+    expect(work!.items.at(-1)!.href).toBe("/bookings");
   });
 
   it("la guía de inicio abre el grupo Agente solo para quien configura", () => {
     for (const role of ["owner", "admin"]) {
-      const agente = appNavGroups({ role })[1]!;
-      expect(agente.items[0]).toMatchObject({ href: "/onboarding", label: "Guía de inicio" });
+      const agent = appNavGroups({ role })[1]!;
+      expect(agent.items[0]).toMatchObject({ href: "/onboarding", label: "Guía de inicio" });
     }
     for (const role of ["member", null, undefined]) {
-      const agente = appNavGroups({ role })[1]!;
-      expect(agente.items.map((i) => i.href)).not.toContain("/onboarding");
+      const agent = appNavGroups({ role })[1]!;
+      expect(agent.items.map((i) => i.href)).not.toContain("/onboarding");
     }
   });
 
   it("solo la Bandeja lleva el contador y Ajustes queda fuera de los grupos", () => {
-    const todos = appNavGroups({ agenda: true, role: "owner" }).flatMap((g) => g.items);
-    expect(todos.filter((i) => i.badge).map((i) => i.href)).toEqual(["/inbox"]);
-    expect(todos.map((i) => i.href)).not.toContain("/settings");
+    const everyone = appNavGroups({ agenda: true, role: "owner" }).flatMap((g) => g.items);
+    expect(everyone.filter((i) => i.badge).map((i) => i.href)).toEqual(["/inbox"]);
+    expect(everyone.map((i) => i.href)).not.toContain("/settings");
     expect(SETTINGS_ITEM.href).toBe("/settings");
     // Cada entrada trae su icono: el renglón lo pinta sin condicionar.
-    for (const item of [...todos, SETTINGS_ITEM]) expect(item.icon).toBeDefined();
+    for (const item of [...everyone, SETTINGS_ITEM]) expect(item.icon).toBeDefined();
   });
 
   it("una ruta hija activa su entrada, y /settings no activa nada más", () => {

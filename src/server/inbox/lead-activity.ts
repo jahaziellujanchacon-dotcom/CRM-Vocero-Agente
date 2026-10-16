@@ -106,8 +106,8 @@ export async function createLeadForContact(input: {
     .onConflictDoNothing({ target: [schema.lead.contactId] })
     .returning({ id: schema.lead.id, stageId: schema.lead.stageId });
 
-  const creado = inserted[0];
-  if (!creado) return null;
+  const created = inserted[0];
+  if (!created) return null;
 
   // El nacimiento del lead es el primer evento del embudo: sin él, "prospectos
   // que entraron en el periodo" no se podría contar desde la bitácora. Va aquí
@@ -117,9 +117,9 @@ export async function createLeadForContact(input: {
   // simultáneo ganó la carrera — ese ya anotó el suyo.
   await recordLeadCreated({
     organizationId: input.organizationId,
-    leadId: creado.id,
+    leadId: created.id,
     contactId: input.contactId,
-    stageId: creado.stageId,
+    stageId: created.stageId,
     occurredAt: input.at,
     actorUserId: input.actorUserId ?? null,
     source: input.source ?? "sistema",
@@ -135,13 +135,13 @@ export async function createLeadForContact(input: {
       await db
         .update(schema.lead)
         .set({ assignedUserId: input.assignedUserId, assignedAt: now, updatedAt: now })
-        .where(eq(schema.lead.id, creado.id));
+        .where(eq(schema.lead.id, created.id));
     } else if (!input.skipRotation) {
-      await assignLeadByRotation(input.organizationId, creado.id);
+      await assignLeadByRotation(input.organizationId, created.id);
     }
   } catch (err) {
     console.error("[leads] could not assign the new lead:", err);
   }
 
-  return creado;
+  return created;
 }

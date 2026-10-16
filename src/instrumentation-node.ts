@@ -1,10 +1,10 @@
 import { eq } from "drizzle-orm";
 import { getDb, schema } from "@/lib/db";
 import { mediaDirStatus } from "@/server/media-dir";
-import { leerConfigDespacho } from "@/server/brains/config";
-import { iniciarWorker, tanda } from "@/server/dispatch/worker";
-import { leerConfigCentral } from "@/server/central/flag";
-import { iniciarLatidos } from "@/server/central/heartbeat";
+import { readConfigDispatch } from "@/server/brains/config";
+import { startWorker, batch } from "@/server/dispatch/worker";
+import { readConfigCentral } from "@/server/central/flag";
+import { startHeartbeats } from "@/server/central/heartbeat";
 
 /**
  * 008 — Aviso al arranque si MEDIA_DIR no es escribible. Sin esto, el primer
@@ -67,10 +67,10 @@ export async function cleanupOrphanRuns(): Promise<void> {
  * responde»: es el log que alguien mira cuando el agente no contesta.
  */
 export function resumeDispatch(): void {
-  const config = leerConfigDespacho();
+  const config = readConfigDispatch();
   if (config.active) {
-    iniciarWorker();
-    void tanda();
+    startWorker();
+    void batch();
     console.log(`[boot] despacho al cerebro activo → ${config.host}`);
     return;
   }
@@ -90,12 +90,12 @@ export function resumeDispatch(): void {
  * `INTO_CENTRAL_URL`. Mal escrita, se dice aquí una vez y el CRM sigue igual:
  * es un conector opcional (constitución II).
  */
-export function iniciarLatidoCentral(): void {
-  const config = leerConfigCentral();
-  if (config.activo) {
-    iniciarLatidos();
+export function startHeartbeatCentral(): void {
+  const config = readConfigCentral();
+  if (config.active) {
+    startHeartbeats();
     console.log(`[boot] latido al servicio central → ${config.host}`);
-  } else if (config.problema === "url") {
+  } else if (config.problem === "url") {
     console.error(
       "[boot] INTO_CENTRAL_URL no es una URL http:// o https:// válida (sin usuario:clave): el latido al servicio central queda INACTIVO."
     );

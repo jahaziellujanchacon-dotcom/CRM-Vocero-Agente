@@ -44,7 +44,7 @@ type KbEntry = {
 export function AgentClient() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [aiConfigured, setAiConfigured] = useState(true);
-  const [aiMensaje, setAiMensaje] = useState<string | null>(null);
+  const [aiMessage, setAiMessage] = useState<string | null>(null);
   const [attentionNow, setAttentionNow] = useState(false);
   const [entries, setEntries] = useState<KbEntry[]>([]);
   const [kbSize, setKbSize] = useState<{ chars: number; warnAt: number; warning: boolean } | null>(null);
@@ -70,7 +70,7 @@ export function AgentClient() {
     if (p) {
       setProfile(p.profile);
       setAiConfigured(p.aiConfigured);
-      setAiMensaje(p.aiMensaje ?? null);
+      setAiMessage(p.aiMessage ?? null);
       setAttentionNow(Boolean(p.attentionNow));
     }
     if (kb) setEntries(kb.entries);
@@ -161,10 +161,10 @@ export function AgentClient() {
         <div className="mx-4 mt-4 rounded-lg border border-brand-soft bg-brand-tint p-5 text-center sm:mx-6 sm:mt-6 sm:p-6">
           <Sparkles className="mx-auto mb-2 h-8 w-8 text-primary" />
           <p className="font-medium">
-            {aiMensaje ? "Tu agente no puede contestar" : "Configura tu proveedor de IA para activar el agente"}
+            {aiMessage ? "Tu agente no puede contestar" : "Configura tu proveedor de IA para activar el agente"}
           </p>
           <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
-            {aiMensaje ??
+            {aiMessage ??
               "Elige el proveedor, el modelo y pega tu llave: sin reiniciar nada."}{" "}
             Mientras tanto puedes dejar listo el comportamiento y el conocimiento aquí
             abajo.

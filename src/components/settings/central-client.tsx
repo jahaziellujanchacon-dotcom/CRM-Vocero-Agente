@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CUENTA_LABEL, FORMATO_LLAVE, textoDelResultado, type ResultadoCentral } from "@/lib/central";
+import { ACCOUNT_LABEL, FORMAT_KEY, resultText, type ResultCentral } from "@/lib/central";
 
 /**
  * 028 — Ajustes → Plan: la llave de licencia de into y el plan que devuelve
@@ -14,73 +14,73 @@ import { CUENTA_LABEL, FORMATO_LLAVE, textoDelResultado, type ResultadoCentral }
  * solo muestra sus últimos 4. Nada de esto afecta al resto del CRM.
  */
 
-type Licencia = {
-  llaveLast4: string;
-  ultimoIntento: string | null;
-  ultimoResultado: ResultadoCentral | null;
-  ultimoOk: string | null;
-  plan: { codigo: string; nombre: string } | null;
-  cuenta: "active" | "suspended" | null;
+type License = {
+  keyLast4: string;
+  lastAttempt: string | null;
+  lastResult: ResultCentral | null;
+  lastOk: string | null;
+  plan: { code: string; name: string } | null;
+  account: "active" | "suspended" | null;
 };
 
-type Vista = { central: string | null; licencia: Licencia | null };
+type View = { central: string | null; license: License | null };
 
-type Mensaje = { kind: "ok" | "error"; text: string };
+type Message = { kind: "ok" | "error"; text: string };
 
-const fecha = new Intl.DateTimeFormat("es-PE", { dateStyle: "medium", timeStyle: "short" });
+const date = new Intl.DateTimeFormat("es-PE", { dateStyle: "medium", timeStyle: "short" });
 
 export function CentralClient() {
-  const [vista, setVista] = useState<Vista | null>(null);
-  const [llave, setLlave] = useState("");
-  const [ocupado, setOcupado] = useState<"guardar" | "quitar" | null>(null);
-  const [mensaje, setMensaje] = useState<Mensaje | null>(null);
+  const [view, setView] = useState<View | null>(null);
+  const [key, setKey] = useState("");
+  const [busy, setBusy] = useState<"guardar" | "quitar" | null>(null);
+  const [message, setMessage] = useState<Message | null>(null);
 
-  const cargar = useCallback(async () => {
+  const load = useCallback(async () => {
     const res = await fetch("/api/settings/central").catch(() => null);
-    if (res?.ok) setVista((await res.json()) as Vista);
+    if (res?.ok) setView((await res.json()) as View);
   }, []);
 
   useEffect(() => {
-    void cargar();
-  }, [cargar]);
+    void load();
+  }, [load]);
 
-  async function guardar(e: React.FormEvent) {
+  async function save(e: React.FormEvent) {
     e.preventDefault();
-    setMensaje(null);
-    const limpia = llave.trim();
-    if (!FORMATO_LLAVE.test(limpia)) {
-      setMensaje({ kind: "error", text: "La llave empieza con into_live_ y sigue con 32 letras y números." });
+    setMessage(null);
+    const clean = key.trim();
+    if (!FORMAT_KEY.test(clean)) {
+      setMessage({ kind: "error", text: "La llave empieza con into_live_ y sigue con 32 letras y números." });
       return;
     }
-    setOcupado("guardar");
+    setBusy("guardar");
     const res = await fetch("/api/settings/central", {
       method: "PUT",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ llave: limpia }),
+      body: JSON.stringify({ key: clean }),
     }).catch(() => null);
-    setOcupado(null);
+    setBusy(null);
     if (!res?.ok) {
-      setMensaje({ kind: "error", text: "No se pudo guardar la llave. Inténtalo de nuevo." });
+      setMessage({ kind: "error", text: "No se pudo guardar la llave. Inténtalo de nuevo." });
       return;
     }
-    setLlave("");
-    setVista((await res.json()) as Vista);
-    setMensaje({ kind: "ok", text: "Llave guardada." });
+    setKey("");
+    setView((await res.json()) as View);
+    setMessage({ kind: "ok", text: "Llave guardada." });
   }
 
-  async function quitar() {
-    setMensaje(null);
-    setOcupado("quitar");
+  async function remove() {
+    setMessage(null);
+    setBusy("quitar");
     const res = await fetch("/api/settings/central", { method: "DELETE" }).catch(() => null);
-    setOcupado(null);
+    setBusy(null);
     if (res?.ok) {
-      setVista((await res.json()) as Vista);
-      setMensaje({ kind: "ok", text: "Llave quitada: el CRM dejó de latir al central." });
+      setView((await res.json()) as View);
+      setMessage({ kind: "ok", text: "Llave quitada: el CRM dejó de latir al central." });
     }
   }
 
-  const lic = vista?.licencia ?? null;
-  const resultado = textoDelResultado(lic?.ultimoResultado ?? null);
+  const license = view?.license ?? null;
+  const result = resultText(license?.lastResult ?? null);
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -93,47 +93,47 @@ export function CentralClient() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {vista === null ? (
+          {view === null ? (
             <p className="text-sm text-muted-foreground">Cargando…</p>
-          ) : lic ? (
+          ) : license ? (
             <div className="space-y-3 rounded-md border p-3 text-sm" data-testid="central-estado">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-semibold" data-testid="central-plan">
-                  {lic.plan ? lic.plan.nombre : "Plan sin confirmar"}
+                  {license.plan ? license.plan.name : "Plan sin confirmar"}
                 </span>
-                {lic.plan && <code className="font-mono text-xs text-muted-foreground">{lic.plan.codigo}</code>}
-                {lic.cuenta && (
-                  <Badge variant={lic.cuenta === "active" ? "success" : "warning"} data-testid="central-cuenta">
-                    {CUENTA_LABEL[lic.cuenta]}
+                {license.plan && <code className="font-mono text-xs text-muted-foreground">{license.plan.code}</code>}
+                {license.account && (
+                  <Badge variant={license.account === "active" ? "success" : "warning"} data-testid="central-cuenta">
+                    {ACCOUNT_LABEL[license.account]}
                   </Badge>
                 )}
               </div>
               <dl className="grid gap-x-4 gap-y-1 text-muted-foreground sm:grid-cols-[auto_1fr]">
                 <dt>Llave</dt>
                 <dd className="font-mono" data-testid="central-llave">
-                  ••••{lic.llaveLast4}
+                  ••••{license.keyLast4}
                 </dd>
                 <dt>Último latido</dt>
-                <dd>{lic.ultimoIntento ? fecha.format(new Date(lic.ultimoIntento)) : "Todavía ninguno"}</dd>
-                {vista.central && (
+                <dd>{license.lastAttempt ? date.format(new Date(license.lastAttempt)) : "Todavía ninguno"}</dd>
+                {view.central && (
                   <>
                     <dt>Central</dt>
-                    <dd className="break-all">{vista.central}</dd>
+                    <dd className="break-all">{view.central}</dd>
                   </>
                 )}
               </dl>
-              {resultado && (
+              {result && (
                 <p
                   data-testid="central-resultado"
                   className={
-                    resultado.tono === "ok"
+                    result.tone === "ok"
                       ? "text-success-text"
-                      : resultado.tono === "error"
+                      : result.tone === "error"
                         ? "text-danger-text"
                         : "text-warning-text"
                   }
                 >
-                  {resultado.texto}
+                  {result.text}
                 </p>
               )}
             </div>
@@ -144,36 +144,36 @@ export function CentralClient() {
             </p>
           )}
 
-          <form onSubmit={guardar} className="space-y-3">
+          <form onSubmit={save} className="space-y-3">
             <div className="space-y-1.5">
-              <Label htmlFor="central-llave">{lic ? "Reemplazar la llave" : "Llave de licencia"}</Label>
+              <Label htmlFor="central-llave">{license ? "Reemplazar la llave" : "Llave de licencia"}</Label>
               <Input
                 id="central-llave"
                 type="password"
                 autoComplete="off"
-                value={llave}
-                onChange={(e) => setLlave(e.target.value)}
-                placeholder={lic ? `•••• ${lic.llaveLast4}` : "into_live_…"}
+                value={key}
+                onChange={(e) => setKey(e.target.value)}
+                placeholder={license ? `•••• ${license.keyLast4}` : "into_live_…"}
               />
               <p className="text-xs text-muted-foreground">Se guarda cifrada en tu servidor. No la compartas por chat.</p>
             </div>
-            {mensaje && (
+            {message && (
               <p
-                role={mensaje.kind === "error" ? "alert" : "status"}
-                className={mensaje.kind === "error" ? "text-sm text-danger-text" : "text-sm text-success-text"}
+                role={message.kind === "error" ? "alert" : "status"}
+                className={message.kind === "error" ? "text-sm text-danger-text" : "text-sm text-success-text"}
               >
-                {mensaje.text}
+                {message.text}
               </p>
             )}
             <div className="flex flex-wrap items-center gap-2">
-              <Button type="submit" disabled={ocupado !== null || llave.trim() === ""}>
-                {ocupado === "guardar" ? "Guardando…" : "Guardar y probar"}
+              <Button type="submit" disabled={busy !== null || key.trim() === ""}>
+                {busy === "guardar" ? "Guardando…" : "Guardar y probar"}
               </Button>
-              {lic && (
+              {license && (
                 <button
                   type="button"
-                  onClick={quitar}
-                  disabled={ocupado !== null}
+                  onClick={remove}
+                  disabled={busy !== null}
                   className="text-sm text-text-3 hover:text-foreground"
                 >
                   Quitar

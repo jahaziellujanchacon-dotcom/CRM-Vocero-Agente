@@ -25,10 +25,21 @@ producto** — y saberlo antes de leerla ahorra una confusión.
 | `025-despacho-recuerda` | Ciclo completo | spec, plan, tasks (el despacho anota qué mensajes debe; puerto de Vocero Cloud #111, #116 y #117, migración aditiva `0017`; enmienda el contrato del 021) |
 | `026-reparto-de-leads` | Ciclo completo | spec, plan, data-model, 1 contrato, tasks (IntoSales: vendedor asignado a cada lead, reparto por turno y visibilidad por vendedor; migración aditiva `0017`) |
 | `027-datos-de-ejemplo-por-rubro` | Ligero | spec (comandos `seed:academy`, `seed:realestate` y `seed:fashion`; sin migración) |
+| `1000-acerca-de` | Ligero | spec (pantalla «Acerca de»: versión, módulos encendidos, plan del servicio central, licencia y créditos) |
+| `1001-instalador-vps` | Ligero | spec (`deploy/install.sh`: instalación y actualización en un comando en un VPS, con varias instancias y el central detrás de un Caddy compartido; `INTO_CENTRAL_URL` en el compose) |
+| `1002-base-en-hora-de-lima` | Ciclo completo | spec, plan, tasks (las 83 columnas de fecha pasan a `timestamptz` sin mover ningún instante y la base queda en hora de Lima; la sesión de la app sigue en UTC; migración `0024`) |
+| `1003-password-toggle` | Ligero | spec (botón para mostrar u ocultar la contraseña en «Entrar» y «Crear la cuenta inicial»; `components/ui/password-input.tsx`) |
 | `031-ia-fuera-de-horario` | Ciclo completo | spec, plan, tasks («Cuándo responde la IA»: siempre o solo fuera del horario de atención del equipo, con su horario semanal y zona; el Laboratorio lo ignora; migración aditiva `0022`) |
 | `030-importar-contactos` | Ciclo completo | spec, plan, tasks (Contactos → «Importar» desde `.xlsx` o CSV con vista previa, código de país, sin duplicar ni pisar, leads por turno; sin migración ni dependencias nuevas) |
 | `029-a-quien-llamar-hoy` | Ciclo completo | spec, plan, tasks (pantalla «Hoy»: seguimientos vencidos, de hoy y leads sin primer contacto, por vendedor; próximo contacto en el cajón del trato; migración aditiva `0021`) |
 | `028-latido-al-central` | Ciclo completo | spec, plan, data-model, tasks y la enmienda 1.5.0 de la constitución (latido al servicio central de into tras la bandera `INTO_CENTRAL_URL`, plan en Ajustes; migración aditiva `0020`) |
+
+**Numeración desde la 1000 (2026-10-15, decisión de Juan Carlos).** Las specs
+nuevas de IntoSales se numeran desde la `1000` (`1000-acerca-de`, `1001-…`)
+para no chocar con la numeración del repositorio original de Vocero, del que
+este se alimenta (sus ramas ya usan 028, 029 y 030). Las que ya existían
+conservan su número. Desde el 2026-10-16 el nombre de la carpeta va en
+inglés (`1003-whatsapp-…`); el contenido sigue en español.
 
 Los tres carriles —ciclo completo, ligero y exento— están definidos en el
 [Principio VI de la constitución](../.specify/memory/constitution.md). El

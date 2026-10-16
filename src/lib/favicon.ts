@@ -100,14 +100,14 @@ export function faviconInitial(name: string): string {
  */
 export function generatedFaviconSvg(branding: Branding): string {
   const { accent, fg } = resolveAccentSet(branding.accent);
-  const letra = faviconInitial(branding.name)
+  const letter = faviconInitial(branding.name)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;");
   return [
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">`,
     `<rect width="64" height="64" rx="12" fill="${accent}"/>`,
     `<text x="32" y="33" fill="${fg}" font-family="system-ui,-apple-system,Segoe UI,Roboto,sans-serif"`,
-    ` font-size="38" font-weight="700" text-anchor="middle" dominant-baseline="central">${letra}</text>`,
+    ` font-size="38" font-weight="700" text-anchor="middle" dominant-baseline="central">${letter}</text>`,
     `</svg>`,
   ].join("");
 }
@@ -125,9 +125,9 @@ export function faviconCacheKey(
 ): string {
   if (branding.favicon) return `u${branding.favicon.version}`;
   let h = 0;
-  const semilla = `${branding.name}|${branding.accent}`;
-  for (let i = 0; i < semilla.length; i++) {
-    h = (h * 31 + semilla.charCodeAt(i)) >>> 0;
+  const seed = `${branding.name}|${branding.accent}`;
+  for (let i = 0; i < seed.length; i++) {
+    h = (h * 31 + seed.charCodeAt(i)) >>> 0;
   }
   return `g${h.toString(36)}`;
 }

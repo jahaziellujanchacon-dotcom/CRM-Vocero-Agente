@@ -63,10 +63,10 @@ section("Variables de entorno (esquema de src/lib/env.ts)", [
 ]);
 
 if (!env) {
-  const porque = "el entorno no pasa el esquema: corrige las ✗ de arriba";
-  section("Base de datos", [skip("DATABASE_URL", porque)]);
-  section("Adjuntos", [skip("MEDIA_DIR", porque)]);
-  section("WhatsApp", [skip("WhatsApp", porque)]);
+  const because = "el entorno no pasa el esquema: corrige las ✗ de arriba";
+  section("Base de datos", [skip("DATABASE_URL", because)]);
+  section("Adjuntos", [skip("MEDIA_DIR", because)]);
+  section("WhatsApp", [skip("WhatsApp", because)]);
 } else {
   const db = await checkDatabase(env.DATABASE_URL);
   section("Base de datos", [db]);

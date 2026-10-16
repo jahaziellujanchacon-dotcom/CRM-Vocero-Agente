@@ -169,6 +169,13 @@
       "when": 1791990400000,
       "tag": "0023_default_timezone_lima",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1792112674882,
+      "tag": "0024_timestamptz_lima",
+      "breakpoints": true
     }
   ]
 }

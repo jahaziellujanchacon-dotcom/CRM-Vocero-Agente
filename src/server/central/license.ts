@@ -2,7 +2,7 @@ import { decryptSecret, encryptSecret } from "@/lib/crypto";
 import { getDb, schema } from "@/lib/db";
 import { newId } from "@/lib/db/ids";
 import { scoped } from "@/lib/db/tenant";
-import type { ResultadoLatido } from "@/server/central/client";
+import type { ResultHeartbeat } from "@/server/central/client";
 
 /**
  * 028 — La llave de licencia de into de la organización (cifrada en reposo,
@@ -12,23 +12,23 @@ import type { ResultadoLatido } from "@/server/central/client";
 type Row = typeof schema.centralLicense.$inferSelect;
 
 /** Lo que puede salir hacia el cliente. NUNCA incluye la llave. */
-export type LicenciaPublica = {
-  llaveLast4: string;
-  ultimoIntento: Date | null;
-  ultimoResultado: Row["lastResult"];
-  ultimoOk: Date | null;
-  plan: { codigo: string; nombre: string } | null;
-  cuenta: "active" | "suspended" | null;
+export type PublicLicense = {
+  keyLast4: string;
+  lastAttempt: Date | null;
+  lastResult: Row["lastResult"];
+  lastOk: Date | null;
+  plan: { code: string; name: string } | null;
+  account: "active" | "suspended" | null;
 };
 
-export function toPublica(row: Row): LicenciaPublica {
+export function toPublic(row: Row): PublicLicense {
   return {
-    llaveLast4: row.keyLast4,
-    ultimoIntento: row.lastAttemptAt,
-    ultimoResultado: row.lastResult,
-    ultimoOk: row.lastOkAt,
-    plan: row.planCode && row.planName ? { codigo: row.planCode, nombre: row.planName } : null,
-    cuenta: row.customerStatus,
+    keyLast4: row.keyLast4,
+    lastAttempt: row.lastAttemptAt,
+    lastResult: row.lastResult,
+    lastOk: row.lastOkAt,
+    plan: row.planCode && row.planName ? { code: row.planCode, name: row.planName } : null,
+    account: row.customerStatus,
   };
 }
 
@@ -41,22 +41,22 @@ async function rowDe(organizationId: string): Promise<Row | null> {
   return rows[0] ?? null;
 }
 
-export async function getLicenciaPublica(organizationId: string): Promise<LicenciaPublica | null> {
+export async function getPublicLicense(organizationId: string): Promise<PublicLicense | null> {
   const row = await rowDe(organizationId);
-  return row ? toPublica(row) : null;
+  return row ? toPublic(row) : null;
 }
 
-export async function getLlave(organizationId: string): Promise<{ llave: string; intervalo: number | null } | null> {
+export async function getKey(organizationId: string): Promise<{ key: string; interval: number | null } | null> {
   const row = await rowDe(organizationId);
   if (!row) return null;
   return {
-    llave: decryptSecret({ cipher: row.keyCipher, iv: row.keyIv, tag: row.keyTag }),
-    intervalo: row.nextHeartbeatSeconds,
+    key: decryptSecret({ cipher: row.keyCipher, iv: row.keyIv, tag: row.keyTag }),
+    interval: row.nextHeartbeatSeconds,
   };
 }
 
 /** Las organizaciones que tienen llave (en la raíz, a lo más una). */
-export async function organizacionesConLlave(): Promise<string[]> {
+export async function organizationsWithKey(): Promise<string[]> {
   const rows = await getDb()
     .select({ organizationId: schema.centralLicense.organizationId })
     .from(schema.centralLicense);
@@ -67,14 +67,14 @@ export async function organizacionesConLlave(): Promise<string[]> {
  * Guarda una llave nueva y reemplaza la anterior entera: lo del último latido
  * era de otra llave y no vale para esta (data-model).
  */
-export async function guardarLlave(organizationId: string, llave: string): Promise<void> {
-  const enc = encryptSecret(llave);
+export async function saveKey(organizationId: string, key: string): Promise<void> {
+  const enc = encryptSecret(key);
   const now = new Date();
-  const valores = {
+  const values = {
     keyCipher: enc.cipher,
     keyIv: enc.iv,
     keyTag: enc.tag,
-    keyLast4: llave.slice(-4),
+    keyLast4: key.slice(-4),
     lastAttemptAt: null,
     lastResult: null,
     lastOkAt: null,
@@ -86,30 +86,30 @@ export async function guardarLlave(organizationId: string, llave: string): Promi
   };
   await getDb()
     .insert(schema.centralLicense)
-    .values({ id: newId("centralLicense"), organizationId, ...valores })
-    .onConflictDoUpdate({ target: schema.centralLicense.organizationId, set: valores });
+    .values({ id: newId("centralLicense"), organizationId, ...values })
+    .onConflictDoUpdate({ target: schema.centralLicense.organizationId, set: values });
 }
 
-export async function quitarLlave(organizationId: string): Promise<void> {
+export async function removeKey(organizationId: string): Promise<void> {
   await getDb()
     .delete(schema.centralLicense)
     .where(scoped(schema.centralLicense.organizationId, organizationId));
 }
 
 /** D6: anota el intento; si el central aceptó, también el plan y la cuenta. */
-export async function anotarResultado(organizationId: string, resultado: ResultadoLatido, now: Date): Promise<void> {
-  const set = resultado.ok
+export async function noteResult(organizationId: string, result: ResultHeartbeat, now: Date): Promise<void> {
+  const set = result.ok
     ? {
         lastAttemptAt: now,
         lastResult: "ok" as const,
         lastOkAt: now,
-        planCode: resultado.respuesta.plan.code,
-        planName: resultado.respuesta.plan.name,
-        customerStatus: resultado.respuesta.customer.status,
-        nextHeartbeatSeconds: resultado.respuesta.next_heartbeat_seconds ?? null,
+        planCode: result.response.plan.code,
+        planName: result.response.plan.name,
+        customerStatus: result.response.customer.status,
+        nextHeartbeatSeconds: result.response.next_heartbeat_seconds ?? null,
         updatedAt: now,
       }
-    : { lastAttemptAt: now, lastResult: resultado.resultado, updatedAt: now };
+    : { lastAttemptAt: now, lastResult: result.result, updatedAt: now };
   await getDb()
     .update(schema.centralLicense)
     .set(set)

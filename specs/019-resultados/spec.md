@@ -191,7 +191,7 @@ No es histórico: describe el ahora y no toma rango.
   bandera (D3); las citas respetan la bandera `AGENDA` (D4).
 - **VIII Foco vertical**: medir cuánto de lo que llega por WhatsApp se
   convierte es el CRM, no marketing.
-- **IX Verificación en vivo**: `pnpm test:e2e:resultados` siembra por el
+- **IX Verificación en vivo**: `pnpm test:e2e:results` siembra por el
   webhook y la API reales (con y sin anuncio, etapas, una venta, respuestas del
   agente, un escalamiento, un envío fallido, una corrida del Laboratorio) y
   compara lo que devuelve cada bloque.

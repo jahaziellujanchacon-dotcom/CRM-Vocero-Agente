@@ -266,13 +266,13 @@ export async function getOrCreateContactByIdentity(
      * alguien como "Juan - obra Polanco" no puede perder ese trabajo con el
      * siguiente mensaje. Esa es toda la razon de que exista `nameSource`.
      */
-    const delPerfil = resolved.profileName?.trim();
+    const fromProfile = resolved.profileName?.trim();
     if (
-      delPerfil &&
+      fromProfile &&
       existing.nameSource === "perfil" &&
-      delPerfil !== existing.name
+      fromProfile !== existing.name
     ) {
-      patch.name = delPerfil;
+      patch.name = fromProfile;
     }
     if (existing.archivedAt) patch.archivedAt = null;
     if (Object.keys(patch).length > 0) {

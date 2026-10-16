@@ -14,34 +14,34 @@
  */
 
 export type ConfigCentral =
-  | { activo: true; url: string; host: string }
-  | { activo: false; host: string | null; problema: "url" | null };
+  | { active: true; url: string; host: string }
+  | { active: false; host: string | null; problem: "url" | null };
 
-type Entorno = Record<string, string | undefined>;
+type Environment = Record<string, string | undefined>;
 
 /** Pura sobre el entorno que recibe: la usan el latido, la pantalla, la salud y el doctor. */
-export function leerConfigCentral(env: Entorno = process.env): ConfigCentral {
+export function readConfigCentral(env: Environment = process.env): ConfigCentral {
   const raw = env.INTO_CENTRAL_URL?.trim();
-  if (!raw) return { activo: false, host: null, problema: null };
+  if (!raw) return { active: false, host: null, problem: null };
   let target: URL;
   try {
     target = new URL(raw);
   } catch {
-    return { activo: false, host: null, problema: "url" };
+    return { active: false, host: null, problem: "url" };
   }
   if (target.protocol !== "http:" && target.protocol !== "https:") {
-    return { activo: false, host: null, problema: "url" };
+    return { active: false, host: null, problem: "url" };
   }
   if (target.username || target.password) {
-    return { activo: false, host: target.host, problema: "url" };
+    return { active: false, host: target.host, problem: "url" };
   }
   // Sin la barra final: las rutas del contrato se le agregan (`/v1/heartbeat`).
   const url = `${target.origin}${target.pathname.replace(/\/+$/, "")}`;
-  return { activo: true, url, host: target.host };
+  return { active: true, url, host: target.host };
 }
 
 export function centralEnabled(): boolean {
-  return leerConfigCentral().activo;
+  return readConfigCentral().active;
 }
 
 /** Superficie apagada: 404, como la agenda. Sin bandera, esto no existe. */

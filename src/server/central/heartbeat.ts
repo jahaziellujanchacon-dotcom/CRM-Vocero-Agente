@@ -1,13 +1,13 @@
 import { APP_VERSION, resolveCommit } from "@/lib/version";
-import { chequeosDelLatido } from "@/server/central/checks";
+import { heartbeatChecks } from "@/server/central/checks";
 import {
-  enviarLatido,
-  intervaloSiguiente,
-  type CuerpoLatido,
-  type ResultadoLatido,
+  sendHeartbeat,
+  nextInterval,
+  type BodyHeartbeat,
+  type ResultHeartbeat,
 } from "@/server/central/client";
-import { leerConfigCentral } from "@/server/central/flag";
-import { anotarResultado, getLlave, organizacionesConLlave } from "@/server/central/license";
+import { readConfigCentral } from "@/server/central/flag";
+import { noteResult, getKey, organizationsWithKey } from "@/server/central/license";
 
 /**
  * 028 — El latido al servicio central. Corre fuera de cualquier petición de
@@ -17,78 +17,78 @@ import { anotarResultado, getLlave, organizacionesConLlave } from "@/server/cent
  */
 
 /** Cuándo arrancó este proceso: viaja como `app_started_at`. */
-const ARRANQUE = new Date();
+const STARTUP = new Date();
 
-export async function armarCuerpo(organizationId: string): Promise<CuerpoLatido> {
+export async function buildBody(organizationId: string): Promise<BodyHeartbeat> {
   const { commit } = resolveCommit();
   return {
     app_version: APP_VERSION,
     ...(commit ? { app_commit: commit } : {}),
-    app_started_at: ARRANQUE.toISOString(),
-    checks: await chequeosDelLatido(organizationId),
+    app_started_at: STARTUP.toISOString(),
+    checks: await heartbeatChecks(organizationId),
   };
 }
 
-export type LatidoHecho =
-  | { hecho: false; motivo: "apagado" | "sin_llave" }
-  | { hecho: true; resultado: ResultadoLatido; siguienteSegundos: number };
+export type HeartbeatDone =
+  | { done: false; reason: "apagado" | "sin_llave" }
+  | { done: true; result: ResultHeartbeat; nextSeconds: number };
 
 /** Un latido de una organización, ahora. Anota el resultado en su fila. */
-export async function latirAhora(organizationId: string, now: () => Date = () => new Date()): Promise<LatidoHecho> {
-  const config = leerConfigCentral();
-  if (!config.activo) return { hecho: false, motivo: "apagado" };
-  const guardada = await getLlave(organizationId);
-  if (!guardada) return { hecho: false, motivo: "sin_llave" };
-  const resultado = await enviarLatido({
+export async function beatNow(organizationId: string, now: () => Date = () => new Date()): Promise<HeartbeatDone> {
+  const config = readConfigCentral();
+  if (!config.active) return { done: false, reason: "apagado" };
+  const saved = await getKey(organizationId);
+  if (!saved) return { done: false, reason: "sin_llave" };
+  const result = await sendHeartbeat({
     url: config.url,
-    llave: guardada.llave,
-    cuerpo: await armarCuerpo(organizationId),
+    key: saved.key,
+    body: await buildBody(organizationId),
   });
-  await anotarResultado(organizationId, resultado, now());
-  const pedido = resultado.ok ? resultado.respuesta.next_heartbeat_seconds : guardada.intervalo;
-  return { hecho: true, resultado, siguienteSegundos: intervaloSiguiente(pedido) };
+  await noteResult(organizationId, result, now());
+  const request = result.ok ? result.response.next_heartbeat_seconds : saved.interval;
+  return { done: true, result: result, nextSeconds: nextInterval(request) };
 }
 
-const globalLatido = globalThis as unknown as { __intoCentralTimer?: ReturnType<typeof setTimeout> | null };
+const globalHeartbeat = globalThis as unknown as { __intoCentralTimer?: ReturnType<typeof setTimeout> | null };
 
 /**
  * El temporizador: late al arrancar y vuelve a programarse con el intervalo
  * que pidió el central (D5). Con varias organizaciones, el más corto.
  */
-export function iniciarLatidos(log: (linea: string) => void = console.log): void {
-  if (globalLatido.__intoCentralTimer !== undefined) return;
-  globalLatido.__intoCentralTimer = null;
+export function startHeartbeats(log: (linea: string) => void = console.log): void {
+  if (globalHeartbeat.__intoCentralTimer !== undefined) return;
+  globalHeartbeat.__intoCentralTimer = null;
 
-  const programar = (segundos: number) => {
-    const timer = setTimeout(() => void ronda(), segundos * 1000);
+  const schedule = (seconds: number) => {
+    const timer = setTimeout(() => void round(), seconds * 1000);
     timer.unref?.();
-    globalLatido.__intoCentralTimer = timer;
+    globalHeartbeat.__intoCentralTimer = timer;
   };
 
-  async function ronda(): Promise<void> {
-    let siguiente = intervaloSiguiente(null);
+  async function round(): Promise<void> {
+    let next = nextInterval(null);
     try {
-      const orgs = await organizacionesConLlave();
-      const intervalos: number[] = [];
+      const orgs = await organizationsWithKey();
+      const intervals: number[] = [];
       for (const org of orgs) {
         try {
-          const hecho = await latirAhora(org);
-          if (!hecho.hecho) continue;
-          intervalos.push(hecho.siguienteSegundos);
-          if (!hecho.resultado.ok) {
-            log(`[central] latido sin éxito: ${hecho.resultado.resultado}${hecho.resultado.http ? ` (HTTP ${hecho.resultado.http})` : ""}`);
+          const done = await beatNow(org);
+          if (!done.done) continue;
+          intervals.push(done.nextSeconds);
+          if (!done.result.ok) {
+            log(`[central] latido sin éxito: ${done.result.result}${done.result.http ? ` (HTTP ${done.result.http})` : ""}`);
           }
         } catch (err) {
           log(`[central] el latido falló: ${err instanceof Error ? err.name : "Error"}`);
         }
       }
-      if (intervalos.length > 0) siguiente = Math.min(...intervalos);
+      if (intervals.length > 0) next = Math.min(...intervals);
     } catch (err) {
       // La base puede no estar lista todavía: se reintenta a la hora normal.
       log(`[central] no se pudieron leer las llaves: ${err instanceof Error ? err.name : "Error"}`);
     }
-    programar(siguiente);
+    schedule(next);
   }
 
-  void ronda();
+  void round();
 }

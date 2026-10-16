@@ -27,7 +27,7 @@ describe("030 — CSV como lo guarda Excel (D1)", () => {
 
 describe("030 — .xlsx sin dependencias (D1)", () => {
   it("lee la primera hoja con cadenas compartidas, en línea, texto enriquecido y números", () => {
-    const rows = parseXlsx(readFileSync("tests/fixtures/contactos.xlsx"));
+    const rows = parseXlsx(readFileSync("tests/fixtures/contacts.xlsx"));
     expect(rows).toEqual([
       ["Nombre", "Celular", "Observaciones"],
       ["María José Ñahui", "51987654321", "Pide precio & horario"],

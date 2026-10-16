@@ -3,8 +3,8 @@ import { CHANNEL_ORDER, type Channel } from "@/lib/channels";
 import { getDb } from "@/lib/db";
 import { APP_VERSION, resolveCommit } from "@/lib/version";
 import { parseAgendaFlag } from "@/server/agenda/flag";
-import { parseAtribucionFlag } from "@/server/attribution/flag";
-import { leerConfigCentral } from "@/server/central/flag";
+import { parseAttributionFlag } from "@/server/attribution/flag";
+import { readConfigCentral } from "@/server/central/flag";
 import { parseChannels } from "@/server/channels/enabled";
 import { mediaDirStatus } from "@/server/media-dir";
 
@@ -75,7 +75,7 @@ export type FlagEnv = {
   CHANNELS?: string;
   ATRIBUCION?: string;
   INTO_CENTRAL_URL?: string;
-  [otra: string]: string | undefined;
+  [other: string]: string | undefined;
 };
 
 /**
@@ -89,8 +89,8 @@ export function healthFeatures(env: FlagEnv = process.env): HealthFeatures {
   return {
     agenda: parseAgendaFlag(env.AGENDA),
     channels: CHANNEL_ORDER.filter((c) => channels.has(c)),
-    atribucion: parseAtribucionFlag(env.ATRIBUCION),
-    central: leerConfigCentral(env).activo,
+    atribucion: parseAttributionFlag(env.ATRIBUCION),
+    central: readConfigCentral(env).active,
   };
 }
 

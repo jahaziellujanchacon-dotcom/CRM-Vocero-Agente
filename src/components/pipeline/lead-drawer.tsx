@@ -4,17 +4,17 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { MessageSquareText, X } from "lucide-react";
 import type {
-  AnuncioDto,
-  FichaDto,
-  FichaValue,
+  AdDto,
+  QualificationDto,
+  QualificationValue,
   PriorityValue,
   StageDto,
 } from "@/lib/types";
 import { formatMoneyCents, parseMoneyToCents } from "@/lib/money";
 import { cn, formatPhone } from "@/lib/utils";
-import { AnuncioOrigen } from "@/components/anuncio-origen";
+import { AdOrigin } from "@/components/ad-origin";
 import { ContactAvatar } from "@/components/avatar";
-import { FichaPanel } from "@/components/ficha-panel";
+import { QualificationPanel } from "@/components/qualification-panel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PriorityPicker } from "./priority-picker";
@@ -60,31 +60,31 @@ export function LeadDrawer({
   team: TeamMember[];
   onAssign: (userId: string | null) => void;
 }) {
-  const [ficha, setFicha] = useState<FichaDto>({});
+  const [qualification, setQualification] = useState<QualificationDto>({});
   // 018: de qué anuncio llegó; null si escribió por su cuenta.
-  const [anuncio, setAnuncio] = useState<AnuncioDto | null>(null);
-  const [monto, setMonto] = useState("");
-  const [editandoMonto, setEditandoMonto] = useState(false);
+  const [ad, setAd] = useState<AdDto | null>(null);
+  const [amount, setAmount] = useState("");
+  const [editingAmount, setEditingAmount] = useState(false);
 
   const contactId = lead.contact.id;
-  const moneda = lead.currency ?? currency;
+  const currencyValue = lead.currency ?? currency;
 
-  const cargarFicha = useCallback(async () => {
+  const loadQualification = useCallback(async () => {
     const detail = await fetch(`/api/contacts/${contactId}`)
       .then((r) => (r.ok ? r.json() : null))
       .catch(() => null);
-    setFicha(detail?.contact?.ficha ?? {});
-    setAnuncio(detail?.anuncio ?? null);
+    setQualification(detail?.contact?.ficha ?? {});
+    setAd(detail?.ad ?? null);
   }, [contactId]);
 
   // Al abrir otro trato no puede asomarse el anuncio del anterior.
-  useEffect(() => setAnuncio(null), [contactId]);
+  useEffect(() => setAd(null), [contactId]);
 
   useEffect(() => {
-    setEditandoMonto(false);
-    setMonto(lead.amountCents === null ? "" : (lead.amountCents / 100).toFixed(2));
-    void cargarFicha();
-  }, [cargarFicha, lead.amountCents]);
+    setEditingAmount(false);
+    setAmount(lead.amountCents === null ? "" : (lead.amountCents / 100).toFixed(2));
+    void loadQualification();
+  }, [loadQualification, lead.amountCents]);
 
   // Escape cierra: un cajón que solo se cierra con el ratón estorba a quien
   // revisa el tablero con el teclado.
@@ -96,8 +96,8 @@ export function LeadDrawer({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  async function guardarFicha(patch: Record<string, FichaValue | null>) {
-    setFicha((prev) => {
+  async function saveQualification(patch: Record<string, QualificationValue | null>) {
+    setQualification((prev) => {
       const next = { ...prev };
       for (const [k, v] of Object.entries(patch)) {
         if (v === null) delete next[k];
@@ -110,11 +110,11 @@ export function LeadDrawer({
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ ficha: patch }),
     }).catch(() => null);
-    void cargarFicha();
+    void loadQualification();
   }
 
-  const montoParseado = monto.trim() ? parseMoneyToCents(monto) : null;
-  const montoInvalido = monto.trim().length > 0 && montoParseado === null;
+  const amountParsed = amount.trim() ? parseMoneyToCents(amount) : null;
+  const invalidAmount = amount.trim().length > 0 && amountParsed === null;
 
   return (
     <>
@@ -175,9 +175,9 @@ export function LeadDrawer({
               </p>
             )}
 
-            {anuncio && (
+            {ad && (
               <div className="mt-3">
-                <AnuncioOrigen anuncio={anuncio} />
+                <AdOrigin ad={ad} />
               </div>
             )}
           </section>
@@ -185,39 +185,39 @@ export function LeadDrawer({
           {/* Cuánto */}
           <section className="border-b p-4">
             <p className="mb-2 kicker">
-              Monto ({moneda})
+              Monto ({currencyValue})
             </p>
-            {editandoMonto ? (
+            {editingAmount ? (
               <>
                 <Input
                   autoFocus
-                  value={monto}
-                  onChange={(e) => setMonto(e.target.value)}
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" && !montoInvalido) {
-                      setEditandoMonto(false);
-                      onAmount(montoParseado);
+                    if (e.key === "Enter" && !invalidAmount) {
+                      setEditingAmount(false);
+                      onAmount(amountParsed);
                     }
-                    if (e.key === "Escape") setEditandoMonto(false);
+                    if (e.key === "Escape") setEditingAmount(false);
                   }}
                   placeholder="12,500"
                   aria-label="Monto del trato"
                   className="h-8 text-sm"
                 />
                 <p className="mt-1 text-xs text-text-3">
-                  {montoInvalido
+                  {invalidAmount
                     ? "No se entiende ese importe."
-                    : montoParseado === null
+                    : amountParsed === null
                       ? "Déjalo vacío para quitar el monto."
-                      : `Se guardará como ${formatMoneyCents(montoParseado, moneda)}`}
+                      : `Se guardará como ${formatMoneyCents(amountParsed, currencyValue)}`}
                 </p>
                 <div className="mt-2 flex gap-1.5">
                   <Button
                     size="sm"
-                    disabled={montoInvalido}
+                    disabled={invalidAmount}
                     onClick={() => {
-                      setEditandoMonto(false);
-                      onAmount(montoParseado);
+                      setEditingAmount(false);
+                      onAmount(amountParsed);
                     }}
                   >
                     Guardar
@@ -225,7 +225,7 @@ export function LeadDrawer({
                   <Button
                     size="sm"
                     variant="ghost"
-                    onClick={() => setEditandoMonto(false)}
+                    onClick={() => setEditingAmount(false)}
                   >
                     Cancelar
                   </Button>
@@ -233,7 +233,7 @@ export function LeadDrawer({
               </>
             ) : (
               <button
-                onClick={() => setEditandoMonto(true)}
+                onClick={() => setEditingAmount(true)}
                 aria-label="Editar el monto"
                 className={cn(
                   "w-full rounded px-1 py-1 text-left text-sm tabular-nums hover:bg-accent",
@@ -244,7 +244,7 @@ export function LeadDrawer({
               >
                 {lead.amountCents === null
                   ? "Sin monto — captúralo"
-                  : formatMoneyCents(lead.amountCents, moneda)}
+                  : formatMoneyCents(lead.amountCents, currencyValue)}
               </button>
             )}
           </section>
@@ -316,7 +316,7 @@ export function LeadDrawer({
           </section>
 
           {/* Qué se sabe */}
-          <FichaPanel ficha={ficha} onSave={guardarFicha} />
+          <QualificationPanel ficha={qualification} onSave={saveQualification} />
         </div>
       </aside>
     </>

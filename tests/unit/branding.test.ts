@@ -28,13 +28,13 @@ function contrast(a: string, b: string): number {
 
 /** Variables de un bloque de globals.css, con el valor sin saltos de línea. */
 function variables(css: string, selector: string): Record<string, string> {
-  const inicio = css.indexOf(selector);
-  expect(inicio, `no está el bloque ${selector}`).toBeGreaterThanOrEqual(0);
-  const cuerpo = css
-    .slice(css.indexOf("{", inicio) + 1, css.indexOf("}", inicio))
+  const start = css.indexOf(selector);
+  expect(start, `no está el bloque ${selector}`).toBeGreaterThanOrEqual(0);
+  const body = css
+    .slice(css.indexOf("{", start) + 1, css.indexOf("}", start))
     .replace(/\/\*[\s\S]*?\*\//g, ""); // un comentario puede nombrar un token
   return Object.fromEntries(
-    [...cuerpo.matchAll(/(--[\w-]+):\s*([^;]+);/g)].map((m) => [
+    [...body.matchAll(/(--[\w-]+):\s*([^;]+);/g)].map((m) => [
       m[1]!,
       m[2]!.replace(/\s+/g, " ").trim(),
     ])
@@ -83,9 +83,9 @@ describe("white-label: acento", () => {
 describe("white-label: acento en tema oscuro", () => {
   it("un acento pensado para fondo blanco se aclara hasta despegarse del fondo", () => {
     // Azul profundo: sobre el azul marino de la página casi no se ve.
-    const oscuro = resolveAccentSet("#12305a", "dark");
+    const darkValue = resolveAccentSet("#12305a", "dark");
     expect(contrast("#12305a", DARK_BG)).toBeLessThan(3);
-    expect(contrast(oscuro.accent, DARK_BG)).toBeGreaterThanOrEqual(3);
+    expect(contrast(darkValue.accent, DARK_BG)).toBeGreaterThanOrEqual(3);
   });
 
   it("la tinta del botón pasa AA sobre el acento ya aclarado", () => {
@@ -101,11 +101,11 @@ describe("white-label: acento en tema oscuro", () => {
   });
 
   it("los presets NO se aplican tal cual: están calculados para fondo blanco", () => {
-    const claro = resolveAccentSet("#3f5972", "light");
-    const oscuro = resolveAccentSet("#3f5972", "dark");
-    expect(oscuro.accent).not.toBe(claro.accent);
+    const light = resolveAccentSet("#3f5972", "light");
+    const darkValue = resolveAccentSet("#3f5972", "dark");
+    expect(darkValue.accent).not.toBe(light.accent);
     // soft y tint se mezclan hacia el fondo oscuro, no hacia blanco
-    expect(contrast(oscuro.tint, DARK_BG)).toBeLessThan(2);
+    expect(contrast(darkValue.tint, DARK_BG)).toBeLessThan(2);
   });
 
   it("hex inválido en oscuro también cae al acento por defecto", () => {
@@ -165,13 +165,13 @@ describe("white-label: barra lateral bicolor (.nav-dark)", () => {
     // 1.04:1. Ahora la página va un escalón arriba; si alguien vuelve a
     // igualarlas, el bicolor desaparece en oscuro: aquí se cae.
     const css = readFileSync("src/app/globals.css", "utf8");
-    const oscuro = variables(css, ':root[data-theme="dark"] {');
+    const darkValue = variables(css, ':root[data-theme="dark"] {');
     const nav = variables(css, ".nav-dark {");
     expect(Object.keys(nav)).toEqual(
       expect.arrayContaining(["--bg", "--bg-subtle", "--text", "--text-3", "--border"])
     );
-    expect(nav["--bg-subtle"]).not.toBe(oscuro["--bg-subtle"]);
-    expect(nav["--bg"]).not.toBe(oscuro["--bg"]);
+    expect(nav["--bg-subtle"]).not.toBe(darkValue["--bg-subtle"]);
+    expect(nav["--bg"]).not.toBe(darkValue["--bg"]);
   });
 });
 
@@ -181,31 +181,31 @@ describe("tema oscuro: las superficies se distinguen", () => {
   // Se afirma sobre legibilidad, no sobre un hex: el que retoque el tema
   // oscuro puede mover los valores, no el piso.
   const css = readFileSync("src/app/globals.css", "utf8");
-  const oscuro = variables(css, ':root[data-theme="dark"] {');
-  const claro = variables(css, ":root {");
-  const tono = (nombre: string) => oscuro[nombre] ?? `falta ${nombre}`;
+  const darkValue = variables(css, ':root[data-theme="dark"] {');
+  const light = variables(css, ":root {");
+  const tone = (name: string) => darkValue[name] ?? `falta ${name}`;
 
   it("los bordes separan las columnas: ≥ 1.6:1 contra el fondo", () => {
-    expect(contrast(tono("--border"), tono("--bg"))).toBeGreaterThanOrEqual(1.6);
-    expect(contrast(tono("--border-strong"), tono("--bg"))).toBeGreaterThan(
-      contrast(tono("--border"), tono("--bg"))
+    expect(contrast(tone("--border"), tone("--bg"))).toBeGreaterThanOrEqual(1.6);
+    expect(contrast(tone("--border-strong"), tone("--bg"))).toBeGreaterThan(
+      contrast(tone("--border"), tone("--bg"))
     );
   });
 
   it("el chip y la fila bajo el cursor se ACLARAN respecto al fondo", () => {
     // Contra --bg, que es el de la lista: un chip o un hover más oscuros se
     // leen como un hueco, no como una superficie.
-    const blanco = "#ffffff";
-    for (const nombre of ["--chip-bg", "--row-hover", "--bg-hover"]) {
-      expect(contrast(tono(nombre), blanco), nombre).toBeLessThan(
-        contrast(tono("--bg"), blanco)
+    const white = "#ffffff";
+    for (const name of ["--chip-bg", "--row-hover", "--bg-hover"]) {
+      expect(contrast(tone(name), white), name).toBeLessThan(
+        contrast(tone("--bg"), white)
       );
     }
   });
 
   it("en claro, chips y hover se ven igual que antes", () => {
-    expect(claro["--chip-bg"]).toBe(claro["--bg"]);
-    expect(claro["--row-hover"]).toBe(claro["--bg-subtle"]);
+    expect(light["--chip-bg"]).toBe(light["--bg"]);
+    expect(light["--row-hover"]).toBe(light["--bg-subtle"]);
   });
 });
 

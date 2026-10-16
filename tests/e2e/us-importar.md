@@ -3,7 +3,7 @@
 Automatizado en `scripts/e2e-selftest.mjs` (`importChecks`). Las reglas de cada
 fila, el turno y la asignación se prueban contra PostgreSQL en
 `tests/integration/import.test.ts`; la lectura de CSV y `.xlsx`, en
-`tests/unit/import.test.ts` (con `tests/fixtures/contactos.xlsx`).
+`tests/unit/import.test.ts` (con `tests/fixtures/contacts.xlsx`).
 
 1. Un `.xls` se rechaza con su motivo (AC1).
 2. La vista previa de un CSV separado por punto y coma adivina Nombre,

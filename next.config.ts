@@ -23,7 +23,9 @@ function devPublicHost(): string[] {
 }
 
 const nextConfig: NextConfig = {
-  allowedDevOrigins: devPublicHost(),
+  // En desarrollo también la red local: abrir el CRM desde el celular o desde
+  // otra máquina (http://192.168.1.94:3000). Solo afecta a `next dev`.
+  allowedDevOrigins: [...devPublicHost(), "192.168.*.*", "10.*.*.*", "172.*.*.*", "*.local"],
   // standalone es para la imagen Docker (Linux). En Windows el trazado crea
   // symlinks que requieren permisos elevados, así que ahí se omite.
   output: process.platform === "win32" ? undefined : "standalone",
@@ -38,6 +40,12 @@ const nextConfig: NextConfig = {
   env: {
     NEXT_PUBLIC_APP_VERSION: version,
     NEXT_PUBLIC_BUILD_COMMIT: process.env.SOURCE_COMMIT ?? "",
+  },
+  // El código y sus carpetas van en inglés: la ficha del lead vive en
+  // /api/bot/qualification. La URL de siempre sigue respondiendo porque es
+  // parte del contrato con los cerebros externos (README, «Trae tu propio agente»).
+  async rewrites() {
+    return [{ source: "/api/bot/ficha", destination: "/api/bot/qualification" }];
   },
 };
 

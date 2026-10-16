@@ -34,7 +34,7 @@ deja `assigned_user_id` en `NULL`.
 ## Pruebas
 
 - Unitarias: CSV (coma, punto y coma, comillas, saltos dentro de comillas, BOM,
-  Latin-1), `.xlsx` (con `tests/fixtures/contactos.xlsx`, generado con
+  Latin-1), `.xlsx` (con `tests/fixtures/contacts.xlsx`, generado con
   `zipfile` de Python: cadenas compartidas, en línea y números), encabezados,
   teléfonos y el plan con existentes y repetidos.
 - Integración (PostgreSQL): importar crea contactos y leads, respeta etapa,

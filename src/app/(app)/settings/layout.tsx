@@ -1,6 +1,6 @@
 import { SettingsNav } from "@/components/settings/settings-nav";
 import { agendaEnabled } from "@/server/agenda/flag";
-import { atribucionEnabled } from "@/server/attribution/flag";
+import { attributionEnabled } from "@/server/attribution/flag";
 import { centralEnabled } from "@/server/central/flag";
 import { isChannelEnabled } from "@/server/channels/enabled";
 
@@ -21,7 +21,7 @@ export default function SettingsLayout({
       <div className="flex min-h-0 flex-1 flex-col sm:flex-row">
         <SettingsNav
           agenda={agendaEnabled()}
-          atribucion={atribucionEnabled()}
+          atribucion={attributionEnabled()}
           central={centralEnabled()}
           instagram={isChannelEnabled("instagram")}
           messenger={isChannelEnabled("messenger")}

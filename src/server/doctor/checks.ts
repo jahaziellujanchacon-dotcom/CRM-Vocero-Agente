@@ -4,8 +4,8 @@ import type { ZodIssue } from "zod";
 import { getDb, PG_CONNECTION_OPTIONS, schema } from "@/lib/db";
 import { scoped } from "@/lib/db/tenant";
 import { envSchema, safeParseEnv, type Env } from "@/lib/env";
-import { leerConfigDespacho } from "@/server/brains/config";
-import { leerConfigCentral } from "@/server/central/flag";
+import { readConfigDispatch } from "@/server/brains/config";
+import { readConfigCentral } from "@/server/central/flag";
 import { GENERATED_SECRETS, PLACEHOLDER_PREFIX } from "@/server/doctor/init-env";
 import { probeMediaDir } from "@/server/media-dir";
 import { testConnection, type ConnectionCheck } from "@/server/whatsapp/connect";
@@ -538,7 +538,7 @@ export function checkAi(env: Env): CheckResult {
 export function checkDispatch(
   source: Record<string, string | undefined>
 ): CheckResult {
-  const config = leerConfigDespacho(source);
+  const config = readConfigDispatch(source);
   const label = "BRAIN_DISPATCH_URL";
   if (config.active) {
     return {
@@ -578,16 +578,16 @@ export function checkDispatch(
  * CRM sigue igual. La llave vive cifrada en la base, así que aquí no se mira.
  */
 export function checkCentral(source: Record<string, string | undefined>): CheckResult {
-  const config = leerConfigCentral(source);
+  const config = readConfigCentral(source);
   const label = "INTO_CENTRAL_URL";
-  if (config.activo) {
+  if (config.active) {
     return {
       status: "ok",
       label,
       detail: `late a ${config.host} cada 15 min; la llave de licencia se pega en Ajustes → Plan`,
     };
   }
-  if (config.problema === "url") {
+  if (config.problem === "url") {
     return {
       status: "warn",
       label,

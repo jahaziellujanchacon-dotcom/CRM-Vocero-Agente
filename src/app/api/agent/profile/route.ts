@@ -2,7 +2,7 @@ import { z } from "zod";
 import { apiError, parseBody, withAuth } from "@/lib/api";
 import { getDb, schema } from "@/lib/db";
 import { scoped } from "@/lib/db/tenant";
-import { estadoIaDe, mensajeDeEstado } from "@/lib/ai/provider";
+import { aiStatusOf, statusMessage } from "@/lib/ai/provider";
 import { attentionHoursSchema, isWithinAttentionHours } from "@/lib/attention";
 import { isValidTimeZone } from "@/lib/time/slots";
 import { resolveAttention } from "@/server/ai/attention";
@@ -18,7 +18,7 @@ export const GET = withAuth(async (session) => {
     .limit(1);
   const p = rows[0];
   if (!p) return apiError(404, "not_found", "Perfil del agente no encontrado");
-  const estado = await estadoIaDe(session.organizationId);
+  const status = await aiStatusOf(session.organizationId);
   // 031 — El horario efectivo (con sus defaults) y si ahora es horario de atención.
   const attention = await resolveAttention(session.organizationId, p);
   return Response.json({
@@ -34,10 +34,10 @@ export const GET = withAuth(async (session) => {
       attentionTimezone: attention.timezone,
     },
     attentionNow: isWithinAttentionHours(new Date(), attention.hours, attention.timezone),
-    aiConfigured: estado.activa,
+    aiConfigured: status.active,
     // Por qué no (sin configurar, llave rechazada, sin saldo): la pantalla
     // Agente lo dice con el enlace a Ajustes → IA.
-    aiMensaje: mensajeDeEstado(estado),
+    aiMessage: statusMessage(status),
   });
 });
 

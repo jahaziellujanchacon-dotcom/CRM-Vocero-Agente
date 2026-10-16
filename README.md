@@ -90,7 +90,7 @@ de los datos del propio CRM: no pide conectar nada, y el Laboratorio no cuenta.
 No trae gasto publicitario ni retorno por anuncio, a propósito: ese dato no
 vive en el CRM. Con la agenda encendida suma las citas (realizadas, no
 llegaron, canceladas). Los días se cortan en la zona horaria de la agenda; si
-no hay agenda configurada, en la de Ciudad de México.
+no hay agenda configurada, en la de Lima (`America/Lima`, UTC-5).
 
 ### 🤖 Agente de IA con TU conocimiento
 
@@ -113,7 +113,7 @@ cualquier otra conversación.
 | `GET /api/bot/context` | Quién es la persona, su etapa, si un humano tomó la conversación y si la ventana de 24 h sigue abierta. Con la agenda encendida, también sus citas (`booking`): la próxima, la que ya pasó sin cerrarse y la última que se cerró (cancelada, no asistió o realizada) |
 | `POST /api/bot/messages` | Responder. Sale por el mismo camino que el composer y queda marcado como IA |
 | `GET /api/bot/profile` | El perfil del agente y el knowledge base que editaste en la app |
-| `PUT /api/bot/ficha` | Guardar lo que tu bot descubre del lead (claves libres: cada negocio califica distinto) |
+| `PUT /api/bot/qualification` | Guardar lo que tu bot descubre del lead (claves libres: cada negocio califica distinto). La URL anterior, `/api/bot/ficha`, sigue respondiendo |
 | `POST /api/bot/handoff` | Devolver la conversación a un humano |
 | `POST /api/bot/typing` | Marcar leído y mostrar "escribiendo…" |
 | `GET /api/bot/media/{id}` | Descargar un adjunto entrante sin tocar Meta |
@@ -305,6 +305,21 @@ código si no la encuentra ni en el registro ni en tu máquina. Así que:
 
 Caddy emite el certificado HTTPS solo. Verifica con
 `https://crm.tudominio.com/api/health` → `{"ok":true,"version":"1.5.1",…}`.
+
+### Ruta C — un comando en un VPS
+
+En un Ubuntu o Debian recién creado, con el dominio ya apuntando al servidor:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/jcarlosverase/into-sales/main/deploy/install.sh | sudo bash -s -- --dominio crm.tudominio.com
+```
+
+Instala Docker si falta, genera los secretos, construye la imagen desde el
+código y deja el CRM con HTTPS. Para actualizar, se vuelve a correr el mismo
+comando, que nunca pisa los secretos. En el mismo VPS caben varios CRMs
+(`--nombre`) y el servicio central de into, detrás de un solo Caddy
+compartido. La guía completa está en
+[docs/instalador-vps.md](docs/instalador-vps.md).
 
 ### Otras plataformas: Render, Fly y Railway
 

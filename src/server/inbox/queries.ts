@@ -11,32 +11,32 @@ import { visibleContactCondition, type LeadScope } from "@/server/leads/scope";
  * (organización, conversación) garantiza a lo más una fila por renglón, así
  * que el LEFT JOIN no multiplica la lista.
  */
-const anuncioDeLaConversacion = and(
+const conversationAd = and(
   eq(schema.adAttribution.organizationId, schema.conversation.organizationId),
   eq(schema.adAttribution.conversationId, schema.conversation.id)
 );
 
-const anuncioDeLista = {
+const listAd = {
   id: schema.adAttribution.id,
   headline: schema.adAttribution.headline,
   sourceId: schema.adAttribution.sourceId,
   sourceType: schema.adAttribution.sourceType,
 };
 
-function aAnuncioDeLista(
-  fila: {
+function toListAd(
+  rowValue: {
     id: string | null;
     headline: string | null;
     sourceId: string | null;
     sourceType: string | null;
   } | null
-): ConversationDto["anuncio"] {
+): ConversationDto["ad"] {
   // Sin fila, drizzle devuelve el objeto con todo en null (o null a secas).
-  if (!fila?.id) return null;
+  if (!rowValue?.id) return null;
   return {
-    headline: fila.headline,
-    sourceId: fila.sourceId,
-    sourceType: fila.sourceType,
+    headline: rowValue.headline,
+    sourceId: rowValue.sourceId,
+    sourceType: rowValue.sourceType,
   };
 }
 
@@ -67,14 +67,14 @@ export async function listConversations(
       contact: schema.contact,
       preview: previewSql,
       stageName: stageSql,
-      anuncio: anuncioDeLista,
+      ad: listAd,
     })
     .from(schema.conversation)
     .innerJoin(
       schema.contact,
       eq(schema.conversation.contactId, schema.contact.id)
     )
-    .leftJoin(schema.adAttribution, anuncioDeLaConversacion)
+    .leftJoin(schema.adAttribution, conversationAd)
     .where(
       scoped(
         schema.conversation.organizationId,
@@ -92,7 +92,7 @@ export async function listConversations(
       r.contact,
       r.preview,
       r.stageName,
-      aAnuncioDeLista(r.anuncio)
+      toListAd(r.ad)
     )
   );
 }
@@ -106,14 +106,14 @@ export async function getConversation(
     .select({
       conversation: schema.conversation,
       contact: schema.contact,
-      anuncio: anuncioDeLista,
+      ad: listAd,
     })
     .from(schema.conversation)
     .innerJoin(
       schema.contact,
       eq(schema.conversation.contactId, schema.contact.id)
     )
-    .leftJoin(schema.adAttribution, anuncioDeLaConversacion)
+    .leftJoin(schema.adAttribution, conversationAd)
     .where(
       scoped(
         schema.conversation.organizationId,
@@ -123,7 +123,7 @@ export async function getConversation(
     )
     .limit(1);
   const row = rows[0];
-  return row ? { ...row, anuncio: aAnuncioDeLista(row.anuncio) } : null;
+  return row ? { ...row, ad: toListAd(row.ad) } : null;
 }
 
 export async function listMessages(
@@ -155,7 +155,7 @@ export function serializeConversation(
   contact: typeof schema.contact.$inferSelect,
   preview: string | null = null,
   stageName: string | null = null,
-  anuncio: ConversationDto["anuncio"] = null
+  ad: ConversationDto["ad"] = null
 ): ConversationDto {
   // 024: la extensión humana solo existe en los canales que la declaran.
   const reply =
@@ -184,7 +184,7 @@ export function serializeConversation(
       ? { open: reply.humanAgentTag, remainingMs: reply.humanAgentTag ? reply.operatorRemainingMs : 0 }
       : null,
     preview,
-    anuncio,
+    ad: ad,
   };
 }
 

@@ -10,11 +10,11 @@ import {
   getContactStage,
   serializeContact,
 } from "@/server/contacts";
-import { upsertFicha } from "@/server/bot/ficha";
-import { cuentaComoAnuncio } from "@/lib/anuncios";
+import { upsertQualification } from "@/server/bot/qualification";
+import { accountAsAd } from "@/lib/ad-origin";
 import {
-  anuncioDelContacto,
-  repararImagenSiFalta,
+  contactAd,
+  repairImageIfMissing,
 } from "@/server/attribution/store";
 
 export const dynamic = "force-dynamic";
@@ -28,18 +28,18 @@ export const GET = withAuth(async (session, _req: Request, ctx: Params) => {
   }
   const contact = await getContactById(session.organizationId, id);
   if (!contact) return apiError(404, "not_found", "Contacto no encontrado");
-  const [stageRow, anuncio] = await Promise.all([
+  const [stageRow, ad] = await Promise.all([
     getContactStage(session.organizationId, id),
-    anuncioDelContacto(session.organizationId, id),
+    contactAd(session.organizationId, id),
   ]);
   // 018 — Sin imagen todavía: se reintenta en segundo plano y llega por SSE.
-  if (anuncio && !anuncio.imageAssetId) {
-    repararImagenSiFalta(session.organizationId, id);
+  if (ad && !ad.imageAssetId) {
+    repairImageIfMissing(session.organizationId, id);
   }
   return Response.json({
-    contact: serializeContact(contact, null, null, cuentaComoAnuncio(anuncio)),
+    contact: serializeContact(contact, null, null, accountAsAd(ad)),
     // 018 — de qué anuncio llegó, o null si escribió por su cuenta.
-    anuncio,
+    ad: ad,
     stage: stageRow
       ? {
           id: stageRow.stage.id,
@@ -83,7 +83,7 @@ export const PATCH = withAuth(async (session, req: Request, ctx: Params) => {
   // `PUT /api/bot/ficha`— para heredar el merge y las cotas. Escribirla aquí
   // con un `set` plano sería un segundo camino con otras reglas.
   if (body.data.ficha !== undefined) {
-    const res = await upsertFicha({
+    const res = await upsertQualification({
       organizationId: session.organizationId,
       contactId: id,
       ficha: body.data.ficha,
@@ -115,8 +115,8 @@ export const PATCH = withAuth(async (session, req: Request, ctx: Params) => {
     )
     .returning();
   if (!updated[0]) return apiError(404, "not_found", "Contacto no encontrado");
-  const anuncio = await anuncioDelContacto(session.organizationId, id);
+  const ad = await contactAd(session.organizationId, id);
   return Response.json({
-    contact: serializeContact(updated[0], null, null, cuentaComoAnuncio(anuncio)),
+    contact: serializeContact(updated[0], null, null, accountAsAd(ad)),
   });
 });

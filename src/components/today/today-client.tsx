@@ -40,7 +40,7 @@ const EMPTY: Record<TodaySectionId, string> = {
   first_contact: "Todos los leads nuevos ya tienen respuesta.",
 };
 
-const fecha = (iso: string) =>
+const date = (iso: string) =>
   new Intl.DateTimeFormat("es", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }).format(new Date(`${iso}T00:00:00Z`));
 
 export function TodayClient() {
@@ -88,7 +88,7 @@ export function TodayClient() {
         <div className="min-w-0">
           <h2 className="text-[17px] font-bold tracking-tight">Hoy</h2>
           <p className="text-xs capitalize text-text-3" data-testid="today-date">
-            {data ? fecha(data.today) : "…"}
+            {data ? date(data.today) : "…"}
           </p>
         </div>
         {data?.canFilter ? (

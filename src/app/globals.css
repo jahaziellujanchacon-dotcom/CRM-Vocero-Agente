@@ -109,7 +109,7 @@
     página va un escalón ARRIBA de ella (≥ 1.25:1, si no el bicolor
     desaparece) y lo que flota (diálogos, cajones) otro más. Antes todo vivía
     entre #070e20 y #131f3d: barra y página a 1.04:1 y las sombras no se
-    veían. Los pisos de contraste los vigila tests/unit/contraste-temas.test.ts.
+    veían. Los pisos de contraste los vigila tests/unit/theme-contrast.test.ts.
   */
   :root[data-theme="dark"] {
     color-scheme: dark;

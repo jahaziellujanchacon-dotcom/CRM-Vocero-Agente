@@ -5,11 +5,11 @@
  */
 export async function register(): Promise<void> {
   if (process.env.NEXT_RUNTIME === "nodejs") {
-    const { checkMediaDir, cleanupOrphanRuns, resumeDispatch, iniciarLatidoCentral } =
+    const { checkMediaDir, cleanupOrphanRuns, resumeDispatch, startHeartbeatCentral } =
       await import("./instrumentation-node");
     await checkMediaDir();
     await cleanupOrphanRuns();
     resumeDispatch();
-    iniciarLatidoCentral();
+    startHeartbeatCentral();
   }
 }
