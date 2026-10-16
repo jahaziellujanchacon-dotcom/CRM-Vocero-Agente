@@ -74,11 +74,12 @@ describe("ajustes en tres secciones", () => {
 
   it("con todo apagado: Canales, Agente y Negocio con lo mínimo", () => {
     const sections = settingsSections({});
-    expect(sections.map((s) => s.title)).toEqual(["Canales", "Agente", "Negocio"]);
+    expect(sections.map((s) => s.title)).toEqual(["Canales", "Agente", "Negocio", "Sistema"]);
     expect(links(sections)).toEqual({
       Canales: ["WhatsApp"],
       Agente: ["IA"],
       Negocio: ["Marca", "Plantillas", "Equipo"],
+      Sistema: ["Salud"],
     });
   });
 
@@ -88,6 +89,7 @@ describe("ajustes en tres secciones", () => {
       Canales: ["Estado", "WhatsApp", "Messenger"],
       Agente: ["IA"],
       Negocio: ["Marca", "Plantillas", "Equipo"],
+      Sistema: ["Salud"],
     });
     expect(links(settingsSections({ instagram: true })).Canales).toEqual([
       "Estado",
@@ -101,11 +103,13 @@ describe("ajustes en tres secciones", () => {
       Canales: ["WhatsApp"],
       Agente: ["IA", "Agenda"],
       Negocio: ["Marca", "Plantillas", "Equipo"],
+      Sistema: ["Salud"],
     });
     expect(links(settingsSections({ atribucion: true }))).toEqual({
       Canales: ["WhatsApp"],
       Agente: ["IA"],
       Negocio: ["Marca", "Plantillas", "Equipo", "Anuncios"],
+      Sistema: ["Salud"],
     });
   });
 
@@ -133,6 +137,7 @@ describe("ajustes en tres secciones", () => {
         "/settings/templates",
         "/settings/team",
         "/settings/ads",
+        "/settings/health",
       ].sort()
     );
   });

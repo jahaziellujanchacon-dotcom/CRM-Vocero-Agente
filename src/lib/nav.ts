@@ -147,6 +147,8 @@ export function settingsSections({
     { title: "Canales", links: channels },
     { title: "Agente", links: agent },
     { title: "Negocio", links: business },
+    // 1004 — la salud del propio CRM: base de datos, migraciones y servicios.
+    { title: "Sistema", links: [{ href: "/settings/health", label: "Salud" }] },
   ];
 }
 

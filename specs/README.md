@@ -29,6 +29,7 @@ producto** — y saberlo antes de leerla ahorra una confusión.
 | `1001-instalador-vps` | Ligero | spec (`deploy/install.sh`: instalación y actualización en un comando en un VPS, con varias instancias y el central detrás de un Caddy compartido; `INTO_CENTRAL_URL` en el compose) |
 | `1002-base-en-hora-de-lima` | Ciclo completo | spec, plan, tasks (las 83 columnas de fecha pasan a `timestamptz` sin mover ningún instante y la base queda en hora de Lima; la sesión de la app sigue en UTC; migración `0024`) |
 | `1003-password-toggle` | Ligero | spec (botón para mostrar u ocultar la contraseña en «Entrar» y «Crear la cuenta inicial»; `components/ui/password-input.tsx`) |
+| `1004-health-page` | Ligero | spec («Ajustes → Sistema → Salud»: base de datos, migraciones, archivos, WhatsApp, IA, cerebro externo y servicio central, comprobados al abrirla) |
 | `031-ia-fuera-de-horario` | Ciclo completo | spec, plan, tasks («Cuándo responde la IA»: siempre o solo fuera del horario de atención del equipo, con su horario semanal y zona; el Laboratorio lo ignora; migración aditiva `0022`) |
 | `030-importar-contactos` | Ciclo completo | spec, plan, tasks (Contactos → «Importar» desde `.xlsx` o CSV con vista previa, código de país, sin duplicar ni pisar, leads por turno; sin migración ni dependencias nuevas) |
 | `029-a-quien-llamar-hoy` | Ciclo completo | spec, plan, tasks (pantalla «Hoy»: seguimientos vencidos, de hoy y leads sin primer contacto, por vendedor; próximo contacto en el cajón del trato; migración aditiva `0021`) |

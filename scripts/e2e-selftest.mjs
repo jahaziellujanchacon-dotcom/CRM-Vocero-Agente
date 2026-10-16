@@ -1256,6 +1256,7 @@ async function main() {
   await attentionChecks();
   await aboutChecks();
   await passwordToggleChecks();
+  await healthPageChecks();
 
   console.log(`\n===== ${checks - failures}/${checks} checks OK, ${failures} fallos =====`);
   process.exit(failures > 0 ? 1 : 0);
@@ -3959,6 +3960,44 @@ async function passwordToggleChecks() {
     const box = await page.getByTestId("password-toggle").boundingBox();
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     ok("a 360 px sin scroll horizontal y con un botón de 36 px (AC3)", overflow <= 0 && (box?.width ?? 0) >= 36 && (box?.height ?? 0) >= 36, `overflow=${overflow} botón=${box?.width}x${box?.height}`);
+  } finally {
+    await browser.close();
+  }
+}
+
+/** 1004 — «Ajustes → Sistema → Salud», con la sesión del propietario, a 360 px. */
+async function healthPageChecks() {
+  console.log("\n== 1004: salud del CRM ==");
+  const { chromium } = await import("playwright");
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage({ viewport: { width: 360, height: 780 } });
+    const host = new URL(BASE).hostname;
+    await page.context().addCookies(
+      cookie.split("; ").filter(Boolean).map((c) => {
+        const i = c.indexOf("=");
+        return { name: c.slice(0, i), value: c.slice(i + 1), domain: host, path: "/" };
+      })
+    );
+    await page.goto(`${BASE}/settings/branding`);
+    await page.getByRole("link", { name: "Salud" }).first().click();
+    await page.waitForURL(/\/settings\/health/, { timeout: 15000 }).catch(() => {});
+    ok("Ajustes → Sistema → Salud abre la página (AC1)", new URL(page.url()).pathname === "/settings/health", page.url());
+    const status = async (id) => page.getByTestId(`health-${id}`).getAttribute("data-status", { timeout: 15000 }).catch(() => null);
+    ok("la base de datos responde (AC1)", (await status("database")) === "ok", (await page.getByTestId("health-database").textContent().catch(() => "")) ?? "");
+    ok("sin migraciones pendientes (AC1)", (await status("migrations")) === "ok");
+    ok("MEDIA_DIR se puede escribir (AC1)", (await status("media")) === "ok");
+    ok("WhatsApp: el token del número conectado responde (AC1)", (await status("whatsapp")) === "ok", (await page.getByTestId("health-whatsapp").textContent()) ?? "");
+    ok("IA, cerebro externo y central tienen su fila (AC1)",
+      (await page.getByTestId("health-ai").count()) === 1 && (await page.getByTestId("health-brain").count()) === 1 && (await page.getByTestId("health-central").count()) === 1);
+    ok("arriba, el resumen y la hora de la verificación (AC2)", /Verificado el/.test((await page.getByTestId("health-summary").textContent()) ?? ""));
+    const html = await page.content();
+    ok("no muestra la URL de la base ni tokens (AC3)", !/postgres(ql)?:\/\//.test(html) && !html.includes(process.env.OPENROUTER_API_TOKEN ?? "sin-token-en-este-entorno") && !html.includes(process.env.BOT_API_KEY ?? "sin-llave"));
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    ok("a 360 px sin scroll horizontal (AC5)", overflow <= 0, `overflow=${overflow}`);
+    await page.getByTestId("health-recheck").click();
+    await page.waitForLoadState();
+    ok("«Verificar de nuevo» repite los chequeos (AC2)", (await status("database")) === "ok");
   } finally {
     await browser.close();
   }

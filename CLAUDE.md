@@ -52,6 +52,7 @@ externas: el trabajo en segundo plano (agente, Laboratorio) es in-process.
 | Cuándo responde la IA (siempre o solo fuera del horario de atención) | `src/lib/attention.ts` (regla y esquema) · `src/server/ai/attention.ts` (horario efectivo y la puerta) · puerta en `src/server/ai/pipeline.ts` · `/api/agent/profile` · `src/components/agent/attention-hours.tsx` · spec [031](specs/031-ia-fuera-de-horario/spec.md) |
 | El latido al servicio central de into y el plan (opcional) | `src/server/central/` — bandera `INTO_CENTRAL_URL` (`flag.ts`), adaptador del contrato (`client.ts`), llave cifrada (`license.ts`), temporizador (`heartbeat.ts`) · Ajustes → Plan · spec [028](specs/028-latido-al-central/spec.md) |
 | La instalación en un VPS con un comando | `deploy/install.sh` + `deploy/docker-compose.vps.yml` (capa sobre `docker-compose.yml`: apaga su Caddy y usa el compartido `into-edge`) · guía: [docs/instalador-vps.md](docs/instalador-vps.md) · spec [1001](specs/1001-instalador-vps/spec.md) |
+| La página de salud del CRM (base de datos, migraciones, archivos, WhatsApp, IA, cerebro, central) | `src/server/system-health.ts` (reusa los chequeos de `src/server/doctor/checks.ts`) · `src/app/(app)/settings/health/page.tsx` · spec [1004](specs/1004-health-page/spec.md) |
 | UI | `src/components/` + `src/app/(app)/` |
 
 **Idioma (2026-10-16, decisión de Juan Carlos):** de aquí en adelante, todo el
