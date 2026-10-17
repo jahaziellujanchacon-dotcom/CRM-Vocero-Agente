@@ -1,18 +1,18 @@
 name: Security (DAST)
 
-# Análisis dinámico (spec 1005): la imagen Docker de verdad, levantada con
-# Docker Compose junto a su PostgreSQL, y OWASP ZAP en modo baseline
-# recorriendo el CRM como lo haría alguien sin cuenta. Baseline es pasivo:
-# mira cabeceras, cookies, formularios y respuestas; no ataca.
+# Dynamic analysis (spec 1005): the real Docker image, started with Docker
+# Compose next to its PostgreSQL, and OWASP ZAP in baseline mode crawling the
+# CRM as someone without an account would. Baseline is passive: it looks
+# at headers, cookies, forms and responses; it does not attack.
 #
-# Las reglas y qué bloquea viven en .zap/rules.tsv. Cómo leer los resultados:
+# Rules and what blocks live in .zap/rules.tsv. How to read the results:
 # docs/security-scans.md.
 on:
   pull_request:
   push:
     branches: [main]
   schedule:
-    # Lunes 06:30 en Lima: las reglas de ZAP también se actualizan.
+    # Monday 06:30 Lima time: ZAP rules get updated too.
     - cron: "30 11 * * 1"
   workflow_dispatch:
 
@@ -29,21 +29,21 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
-    # Solo valores de prueba: nada aquí es un secreto de verdad.
+    # Test values only: nothing here is a real secret.
     env:
       COMPOSE: docker compose -p sales-dast -f docker-compose.yml -f docker-compose.dast.yml
       POSTGRES_PASSWORD: dast
       APP_BASE_URL: http://localhost:3000
       BETTER_AUTH_SECRET: dast-secret-dast-secret-dast-secret-dast
-      ENCRYPTION_KEY: AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8= # gitleaks:allow (valor de prueba, el mismo del E2E)
+      ENCRYPTION_KEY: AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8= # gitleaks:allow (test value, same as E2E)
       META_WEBHOOK_VERIFY_TOKEN: dast-webhook-token
 
     steps:
       - uses: actions/checkout@v7
 
-      # Solo app y postgres (sin Caddy). `--wait` espera el HEALTHCHECK del
-      # Dockerfile, que cubre las migraciones del arranque.
-      - name: levantar la app
+      # Only app and postgres (no Caddy). `--wait` waits for the Dockerfile
+      # HEALTHCHECK, which covers the startup migrations.
+      - name: start the app
         run: $COMPOSE up -d --build --wait app
 
       - name: zap baseline
@@ -58,7 +58,7 @@ jobs:
           status=$?
           set -e
           [ -f zap/zap-report.md ] && cat zap/zap-report.md >> "$GITHUB_STEP_SUMMARY"
-          # 0: limpio o solo avisos (-I); 1: alguna regla FAIL; 3: ZAP falló.
+          # 0: clean or warnings only (-I); 1: some FAIL rule; 3: ZAP failed.
           exit $status
 
       - uses: actions/upload-artifact@v7
@@ -68,10 +68,10 @@ jobs:
           path: zap/zap-report.*
           retention-days: 30
 
-      - name: registro de la app
+      - name: app logs
         if: ${{ failure() }}
         run: $COMPOSE logs --tail 200 app
 
-      - name: apagar
+      - name: shut down
         if: ${{ always() }}
         run: $COMPOSE down -v

@@ -1,8 +1,8 @@
 /**
- * Resumen de los reportes SARIF del CI de seguridad (spec 1005): CodeQL y
- * Gitleaks los escriben, y aquí se cuentan, se ordenan por gravedad y se
- * decide si el check falla. Sin dependencias ni imports: el CLI
- * (scripts/sarif-summary.ts) lo corre Node directo, sin `pnpm install`.
+ * Summary of the security CI's SARIF reports (spec 1005): CodeQL and Gitleaks
+ * write them, and here they are counted, sorted by severity and checked
+ * against the failure threshold. No dependencies or imports: the CLI
+ * (scripts/sarif-summary.ts) runs it with plain Node, without `pnpm install`.
  */
 
 export type Severity = "critical" | "high" | "medium" | "low" | "note";
@@ -40,7 +40,7 @@ export type SarifLog = { runs?: SarifRun[] };
 
 const ORDER: Severity[] = ["critical", "high", "medium", "low", "note"];
 
-/** Los cortes de GitHub para `security-severity` (CVSS): 9, 7 y 4. */
+/** GitHub's cut-offs for `security-severity` (CVSS): 9, 7 and 4. */
 export function severityFromScore(score: number): Severity {
   if (score >= 9) return "critical";
   if (score >= 7) return "high";
@@ -51,7 +51,7 @@ export function severityFromScore(score: number): Severity {
 function severityOf(result: SarifResult, rule: SarifRule | undefined): Severity {
   const score = Number(rule?.properties?.["security-severity"]);
   if (Number.isFinite(score) && score > 0) return severityFromScore(score);
-  // Sin puntaje (p. ej. Gitleaks, o reglas de calidad de CodeQL): el nivel SARIF.
+  // No score (e.g. Gitleaks, or CodeQL quality rules): use the SARIF level.
   const level = result.level ?? rule?.defaultConfiguration?.level ?? "warning";
   if (level === "error") return "high";
   if (level === "warning") return "medium";
@@ -78,7 +78,7 @@ export function findingsOf(log: SarifLog): Finding[] {
         tool,
         ruleId,
         severity: severityOf(result, rule),
-        // Una línea: el mensaje puede traer saltos y romper la tabla.
+        // One line: the message may contain line breaks and break the table.
         message: (result.message?.text ?? "").replace(/\s+/g, " ").trim(),
         location: line ? `${uri}:${line}` : uri,
       });
@@ -88,9 +88,9 @@ export function findingsOf(log: SarifLog): Finding[] {
 }
 
 /**
- * Hallazgos revisados y aceptados, como `regla@ruta`: se quitan del conteo solo
- * en esa ruta (o carpeta), así la misma regla sigue atenta en el resto. Cada uno
- * va con su porqué junto a donde se pasa (el workflow).
+ * Reviewed and accepted findings, as `rule@path`: they are dropped from the
+ * count only at that path (or folder), so the same rule keeps watching
+ * everywhere else. Each one carries its reason where it is passed (the workflow).
  */
 export function withoutAccepted(findings: Finding[], accepted: string[]): Finding[] {
   const rules = accepted.map((entry) => {
@@ -102,33 +102,33 @@ export function withoutAccepted(findings: Finding[], accepted: string[]): Findin
   );
 }
 
-/** ¿Alguno llega al umbral? `failOn` es la gravedad mínima que bloquea. */
+/** Does any finding reach the threshold? `failOn` is the lowest blocking severity. */
 export function isBlocking(findings: Finding[], failOn: Severity): boolean {
   const limit = ORDER.indexOf(failOn);
   return findings.some((f) => ORDER.indexOf(f.severity) <= limit);
 }
 
-/** Tabla en Markdown para el resumen del job (`$GITHUB_STEP_SUMMARY`). */
+/** Markdown table for the job summary (`$GITHUB_STEP_SUMMARY`). */
 export function markdownSummary(title: string, findings: Finding[], failOn: Severity): string {
-  if (findings.length === 0) return `### ${title}\n\nSin hallazgos.\n`;
+  if (findings.length === 0) return `### ${title}\n\nNo findings.\n`;
   const counts = ORDER.map((s) => [s, findings.filter((f) => f.severity === s).length] as const)
     .filter(([, n]) => n > 0)
     .map(([s, n]) => `${n} ${s}`)
     .join(" · ");
-  // Primero las barras invertidas: si no, un `\|` del texto anularía el escape.
+  // Backslashes first: otherwise a `\|` in the text would cancel the escape.
   const cell = (text: string) => text.replace(/\\/g, "\\\\").replace(/\|/g, "\\|");
   const rows = findings.map(
     (f) => `| ${f.severity} | ${cell(f.tool)} | \`${cell(f.ruleId)}\` | ${cell(f.location)} | ${cell(f.message)} |`
   );
   const verdict = isBlocking(findings, failOn)
-    ? `**Bloquea**: hay hallazgos de gravedad ${failOn} o mayor.`
-    : `No bloquea: ninguno llega a ${failOn}.`;
+    ? `**Blocking**: there are findings of severity ${failOn} or higher.`
+    : `Not blocking: none reaches ${failOn}.`;
   return [
     `### ${title}`,
     "",
-    `${findings.length} hallazgos: ${counts}. ${verdict}`,
+    `${findings.length} findings: ${counts}. ${verdict}`,
     "",
-    "| Gravedad | Herramienta | Regla | Dónde | Detalle |",
+    "| Severity | Tool | Rule | Location | Details |",
     "|---|---|---|---|---|",
     ...rows,
     "",

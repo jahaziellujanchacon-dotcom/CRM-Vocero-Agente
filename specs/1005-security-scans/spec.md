@@ -25,7 +25,7 @@ que responde el servidor a alguien sin cuenta. Y el repo es público.
 - **AC2 (SAST, secretos)** — El check `gitleaks` revisa los commits del PR (o
   los del push) y falla con cualquier secreto. Los lunes revisa todo el
   historial; lo ya revisado va en `.gitleaksignore`.
-- **AC3 (SAST, dependencias)** — El check `dependencias` deja el informe de
+- **AC3 (SAST, dependencias)** — El check `dependencies` deja el informe de
   `pnpm audit` en el resumen y falla con críticas en producción.
 - **AC4 (DAST)** — El check `zap baseline` construye la imagen, la levanta
   con Docker Compose junto a PostgreSQL y corre OWASP ZAP baseline. Falla si
@@ -43,7 +43,7 @@ que responde el servidor a alguien sin cuenta. Y el repo es público.
   `scripts/reset-password.mjs`). Varias pueden ser falsos positivos (la URL de
   Graph sale de la configuración; `creative.ts` ya limita los hosts de Meta),
   pero cada una se revisa y se corrige o se acepta con su porqué.
-- **dependencias**: 4 críticas, una en producción: `shell-quote` vía
+- **dependencies**: 4 críticas, una en producción: `shell-quote` vía
   `better-auth › drizzle-kit › gel`.
 - **Gitleaks**: 8 hallazgos en el historial, todos valores de prueba o de
   ejemplo; quedan en `.gitleaksignore`.
@@ -52,7 +52,7 @@ que responde el servidor a alguien sin cuenta. Y el repo es público.
 
 ## Decisiones
 
-- **D1 — Umbrales iguales a los del central, pero CodeQL y `dependencias`
+- **D1 — Umbrales iguales a los del central, pero CodeQL y `dependencies`
   solo informan al inicio** (decisión de Juan Carlos, 2026-10-17). Con lo de
   arriba arrancarían en rojo; mientras se revisan, sus pasos llevan
   `continue-on-error` y el check sale en verde con el aviso y la tabla en el

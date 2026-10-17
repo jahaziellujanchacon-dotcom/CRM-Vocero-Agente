@@ -8,10 +8,10 @@ en el PR, así se sabe de entrada qué falló.
 |---|---|---|
 | `codeql` | El código TypeScript y los workflows (SAST) | hay un hallazgo de gravedad **alta** o **crítica** (por ahora solo informa, ver abajo) |
 | `gitleaks` | Secretos en los commits del PR | aparece **cualquier** secreto |
-| `dependencias` | CVEs en las dependencias (`pnpm audit`) | hay una vulnerabilidad **crítica** en producción (por ahora solo informa) |
+| `dependencies` | CVEs en las dependencias (`pnpm audit`) | hay una vulnerabilidad **crítica** en producción (por ahora solo informa) |
 
 Mientras se revisan los hallazgos de la primera corrida (spec 1005, D1),
-`codeql` y `dependencias` salen en verde aunque encuentren algo: el paso que
+`codeql` y `dependencies` salen en verde aunque encuentren algo: el paso que
 fallaría lleva `continue-on-error` y deja un aviso amarillo con la tabla en el
 resumen. Al resolverlos, se quita y pasan a bloquear.
 | `zap baseline` | Lo que responde el CRM a alguien sin cuenta (DAST) | salta una regla `FAIL` de `.zap/rules.tsv` |
@@ -43,7 +43,7 @@ pueden subir).
   después sácalo del código. Solo si es un falso positivo (un ejemplo, un
   valor de prueba), copia la huella (`Fingerprint`) que imprime el job a
   `.gitleaksignore` con un comentario.
-- **dependencias**: la tabla del resumen dice en qué versión se corrige. Sube
+- **dependencies**: la tabla del resumen dice en qué versión se corrige. Sube
   el paquete (`pnpm up paquete@versión`) o, si viene por otro, el que lo trae.
   El informe también lista altas y moderadas: no bloquean, pero conviene
   planearlas.

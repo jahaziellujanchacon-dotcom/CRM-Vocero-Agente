@@ -1,11 +1,11 @@
 /**
- * CLI del CI de seguridad (spec 1005): resume uno o más reportes SARIF en el
- * resumen del job y sale con 1 si algún hallazgo llega al umbral.
+ * Security CI CLI (spec 1005): summarizes one or more SARIF reports in the job
+ * summary and exits with 1 if any finding reaches the threshold.
  *
  *   node scripts/sarif-summary.ts --title "CodeQL" --fail-on high \
- *     --accept js/regla@src/archivo.ts results/*.sarif
+ *     --accept js/rule@src/file.ts results/*.sarif
  *
- * Corre con el soporte de TypeScript de Node 22 (sin build ni dependencias).
+ * Runs on Node 22's TypeScript support (no build, no dependencies).
  */
 import { appendFileSync, readFileSync } from "node:fs";
 import { findingsOf, isBlocking, markdownSummary, withoutAccepted, type SarifLog, type Severity } from "../src/server/security/sarif.ts";
@@ -27,7 +27,7 @@ const all = files.flatMap((file) => findingsOf(JSON.parse(readFileSync(file, "ut
 const findings = withoutAccepted(all, accepted.filter(Boolean));
 const skipped = all.length - findings.length;
 let summary = markdownSummary(title, findings, failOn);
-if (skipped > 0) summary += `\n${skipped} hallazgo(s) aceptado(s) a propósito (\`--accept\` en el workflow).\n`;
+if (skipped > 0) summary += `\n${skipped} finding(s) accepted on purpose (\`--accept\` in the workflow).\n`;
 console.log(summary);
 if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary + "\n");
 process.exit(isBlocking(findings, failOn) ? 1 : 0);

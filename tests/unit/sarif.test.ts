@@ -8,8 +8,8 @@ import {
   type SarifLog,
 } from "@/server/security/sarif";
 
-// Recortes de lo que escriben CodeQL (reglas en extensions, con
-// security-severity) y Gitleaks (reglas en driver, solo nivel SARIF).
+// Trimmed versions of what CodeQL (rules in extensions, with
+// security-severity) and Gitleaks (rules in driver, SARIF level only) write.
 const codeql: SarifLog = {
   runs: [
     {
@@ -58,7 +58,7 @@ const gitleaks: SarifLog = {
 };
 
 describe("severityFromScore", () => {
-  it("usa los cortes de GitHub", () => {
+  it("uses GitHub's cut-offs", () => {
     expect(severityFromScore(9.8)).toBe("critical");
     expect(severityFromScore(7)).toBe("high");
     expect(severityFromScore(4)).toBe("medium");
@@ -67,7 +67,7 @@ describe("severityFromScore", () => {
 });
 
 describe("findingsOf", () => {
-  it("toma la gravedad del puntaje y ordena de mayor a menor", () => {
+  it("takes severity from the score and sorts highest first", () => {
     const findings = findingsOf(codeql);
     expect(findings.map((f) => [f.ruleId, f.severity])).toEqual([
       ["js/sql-injection", "high"],
@@ -77,20 +77,20 @@ describe("findingsOf", () => {
     expect(findings[1]).toMatchObject({ tool: "CodeQL", location: "src/a.ts:3", message: "Cross-site scripting" });
   });
 
-  it("sin puntaje usa el nivel SARIF y encuentra la regla por índice", () => {
+  it("falls back to the SARIF level and finds the rule by index", () => {
     expect(findingsOf(gitleaks)).toEqual([
       { tool: "gitleaks", ruleId: "generic-api-key", severity: "medium", message: "secret", location: ".env.example:1" },
     ]);
   });
 
-  it("un reporte vacío no trae hallazgos", () => {
+  it("returns no findings for an empty report", () => {
     expect(findingsOf({})).toEqual([]);
     expect(findingsOf({ runs: [{ results: [] }] })).toEqual([]);
   });
 });
 
 describe("isBlocking", () => {
-  it("bloquea desde el umbral hacia arriba", () => {
+  it("blocks from the threshold upwards", () => {
     const findings = findingsOf(codeql);
     expect(isBlocking(findings, "high")).toBe(true);
     expect(isBlocking(findings, "critical")).toBe(false);
@@ -99,7 +99,7 @@ describe("isBlocking", () => {
 });
 
 describe("withoutAccepted", () => {
-  it("quita la regla solo en la ruta aceptada", () => {
+  it("drops the rule only at the accepted path", () => {
     const findings = findingsOf(codeql);
     expect(withoutAccepted(findings, ["js/sql-injection@src/server/"]).map((f) => f.ruleId)).toEqual([
       "js/xss",
@@ -110,19 +110,19 @@ describe("withoutAccepted", () => {
 });
 
 describe("markdownSummary", () => {
-  it("cuenta, dice si bloquea y escapa las barras de la tabla", () => {
+  it("counts, states whether it blocks and escapes table pipes", () => {
     const md = markdownSummary("CodeQL", findingsOf(codeql), "high");
-    expect(md).toContain("3 hallazgos: 1 high · 1 medium · 1 note. **Bloquea**");
+    expect(md).toContain("3 findings: 1 high · 1 medium · 1 note. **Blocking**");
     expect(md).toContain("SQL \\| injection");
   });
 
-  it("escapa también las barras invertidas antes que las verticales", () => {
+  it("escapes backslashes before pipes", () => {
     const [finding] = findingsOf(gitleaks);
     const md = markdownSummary("Gitleaks", [{ ...finding!, message: "a\\|b" }], "note");
     expect(md).toContain("a\\\\\\|b");
   });
 
-    it("sin hallazgos lo dice", () => {
-    expect(markdownSummary("Gitleaks", [], "note")).toContain("Sin hallazgos.");
+  it("says so when there are no findings", () => {
+    expect(markdownSummary("Gitleaks", [], "note")).toContain("No findings.");
   });
 });
