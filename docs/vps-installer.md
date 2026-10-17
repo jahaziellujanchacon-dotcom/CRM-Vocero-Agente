@@ -103,3 +103,21 @@ propietario o administrador.
 Guarda una copia del `.env` de cada instancia (`/opt/into-sales/<nombre>/.env`).
 `ENCRYPTION_KEY` cifra los tokens de WhatsApp y de la IA: sin ella, hay que
 volver a pegarlos.
+
+## Registros y monitoreo
+
+El registro de la app es un JSON por línea (spec
+[1006](../specs/1006-observability/spec.md)). Para ver solo los errores:
+
+```bash
+sudo docker compose -p into-sales-principal logs app | grep '"level":"error"'
+```
+
+Cada respuesta trae `X-Request-Id`; el mismo valor sale en el registro de
+Caddy (campo `uuid`) y en los errores de la app.
+
+Si el servidor tiene el monitoreo de into (lo instala el instalador de
+into-central con `--monitoring`; guía en `docs/monitoring.md` de ese repo),
+cada CRM se suma a Prometheus y a Grafana al correr su instalador. Un CRM
+instalado antes del monitoreo necesita volver a correr el instalador una vez;
+la actualización rápida de arriba no lo suma.

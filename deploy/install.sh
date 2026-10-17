@@ -56,6 +56,9 @@ Para probar en una máquina de desarrollo (no en producción):
   --puertos H:S   Puertos HTTP:HTTPS del Caddy compartido (por defecto 80:443).
   --origen DIR    Copia el código de esa carpeta en vez de clonar el repositorio.
 
+Monitoreo: si el servidor ya tiene el de into (lo instala el instalador de
+into-central con --monitoring), la instancia se suma sola a Prometheus.
+
 Repositorio privado: exporta GITHUB_TOKEN (un token de solo lectura) antes de
 correrlo; no se guarda en ningún archivo.
 EOF
@@ -110,6 +113,9 @@ PROYECTO="$APP-$NOMBRE"
 [ "$SIN_SISTEMA" = 0 ] || PROYECTO="prueba-$PROYECTO"
 DIR="$BASE/$APP/$NOMBRE"
 EDGE="$BASE/into-edge"
+# Monitoring of every into app on this server (spec 1006), installed by the
+# into-central installer with --monitoring.
+MON="$BASE/into-monitoring"
 ALIAS="$PROYECTO-app"
 URL="https://$DOMINIO"
 [ "$HTTPS_PORT" = 443 ] || URL="$URL:$HTTPS_PORT"
@@ -197,6 +203,9 @@ services:
       - ./sites:/etc/caddy/sites:ro
       - caddy_data:/data
       - caddy_config:/config
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
     networks: [edge]
 networks:
   edge:
@@ -284,6 +293,20 @@ escribir_env() {
   CENTRAL=$(grep "^INTO_CENTRAL_URL=" "$DIR/.env" | cut -d= -f2- || true)
   env_set EDGE_ALIAS "$ALIAS"
   env_set APP_IMAGE "$APP:$NOMBRE"
+  # Spec 1006: with the into monitoring on this server, the instance takes
+  # its shared token so Prometheus can read /api/metrics.
+  if [ -s "$MON/metrics-token" ]; then
+    env_set METRICS_TOKEN "$(cat "$MON/metrics-token")"
+  fi
+}
+
+# Tells Prometheus where this instance is on the into_edge network.
+write_metrics_target() {
+  [ -s "$MON/metrics-token" ] || return 0
+  mkdir -p "$MON/targets"
+  printf '[{"targets": ["%s:%s"], "labels": {"app": "%s", "instance": "%s"}}]\n' \
+    "$ALIAS" "$APP_PORT" "$APP" "$PROYECTO" > "$MON/targets/$PROYECTO.json"
+  chmod 644 "$MON/targets/$PROYECTO.json"
 }
 
 dc() {
@@ -331,7 +354,16 @@ main() {
 
   cat > "$EDGE/sites/$PROYECTO.caddy" <<EOF
 # $PROYECTO — lo escribe el instalador de into-sales.
+# Spec 1006: JSON access log without the webhook token or query strings, and
+# an X-Request-Id the app logs too. /api/metrics stays inside Docker.
 $DOMINIO {
+	log {
+		format filter {
+			request>uri regexp "^(/api/webhooks/[^/?]+/)[^/?]+.*\$|\\?.*\$" "\${1}[redacted]"
+		}
+	}
+	request_header X-Request-Id {http.request.uuid}
+	respond /api/metrics 404
 	encode gzip
 	reverse_proxy $ALIAS:$APP_PORT {
 		# SSE: sin buffering en el proxy
@@ -339,6 +371,7 @@ $DOMINIO {
 	}
 }
 EOF
+  write_metrics_target
   recargar_edge
 
   echo

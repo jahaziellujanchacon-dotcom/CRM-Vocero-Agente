@@ -42,4 +42,21 @@ describe("deploy/install.sh (spec 1001)", () => {
   it("el compose le pasa INTO_CENTRAL_URL a la app (sin ella el latido no se enciende)", () => {
     expect(readFileSync("docker-compose.yml", "utf8")).toContain("INTO_CENTRAL_URL: ${INTO_CENTRAL_URL:-}");
   });
+
+  // Spec 1006.
+  it("logs each site without the webhook token, with a request id, and closes /api/metrics", () => {
+    for (const file of ["Caddyfile", "deploy/install.sh"]) {
+      const text = readFileSync(file, "utf8");
+      expect(text, file).toContain("request>uri regexp");
+      expect(text, file).toContain("[redacted]");
+      expect(text, file).toContain("request_header X-Request-Id {http.request.uuid}");
+      expect(text, file).toContain("respond /api/metrics 404");
+    }
+  });
+
+  it("rotates the container logs and passes the metrics token to the app", () => {
+    const compose = readFileSync("docker-compose.yml", "utf8");
+    expect(compose.match(/logging: \*logging/g)).toHaveLength(3);
+    expect(compose).toContain("METRICS_TOKEN: ${METRICS_TOKEN:-}");
+  });
 });
