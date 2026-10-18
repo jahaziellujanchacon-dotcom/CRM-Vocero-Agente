@@ -35,7 +35,7 @@ services:
     restart: unless-stopped
     environment:
       APP_BASE_URL: ${APP_BASE_URL}
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/vocero
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/into_sales
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY}
       META_WEBHOOK_VERIFY_TOKEN: ${META_WEBHOOK_VERIFY_TOKEN}
@@ -53,6 +53,8 @@ services:
       ATRIBUCION: ${ATRIBUCION:-}
       BOT_API_KEY: ${BOT_API_KEY:-}
       BRAIN_HEALTH_URL: ${BRAIN_HEALTH_URL:-}
+      BRAIN_DISPATCH_URL: ${BRAIN_DISPATCH_URL:-}
+      TRUSTED_ORIGINS: ${TRUSTED_ORIGINS:-}
       # Latido al servicio central de into (spec 028); vacía = apagado.
       INTO_CENTRAL_URL: ${INTO_CENTRAL_URL:-}
       # Observability (spec 1006): level of the JSON logs and token of
@@ -75,7 +77,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: vocero
+      POSTGRES_DB: into_sales
       # Hora de Lima (UTC-5) para el servidor y quien abra la base; las fechas son
       # timestamptz y guardan el instante, así que esto solo cambia cómo se ven.
       TZ: America/Lima
@@ -84,7 +86,7 @@ services:
       - vocero_pg:/var/lib/postgresql/data
     logging: *logging
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d vocero"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d into_sales"]
       interval: 10s
       timeout: 5s
       retries: 10
