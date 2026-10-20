@@ -3,11 +3,10 @@
  * `BRAIN_DISPATCH_URL` (a dónde) y `BOT_API_KEY` (con qué se firma, y con qué
  * contesta el cerebro por `/api/bot/*`).
  *
- * Activo, el despacho silencia al agente incluido: los dos caminos son
- * excluyentes (`server/ai/trigger.ts`). Mal configurado NO está activo: todo
- * se comporta como si la variable no existiera y la tarjeta «Quién responde»
- * dice qué corregir. Preferible a dejar la instancia muda por una URL mal
- * escrita.
+ * 036 — Es el único camino por el que alguien contesta (el CRM no trae
+ * agente), y además hace falta el interruptor del Agente encendido. Mal
+ * configurado NO está activo: la instancia queda como bandeja manual y la
+ * tarjeta «Quién responde» dice qué corregir.
  *
  * A diferencia de la edición cloud, aquí no se exige una URL pública: la pone
  * quien instala, no un tercero, y lo normal es la dirección interna del
